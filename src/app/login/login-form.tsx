@@ -34,6 +34,11 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
+    router.prefetch("/dashboard");
+    router.prefetch("/dashboard/admin");
+  }, [router]);
+
+  useEffect(() => {
     setSelectedStaffId(null);
     setErrorMsg("");
 
@@ -81,10 +86,9 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
         }),
       );
 
-      router.push(
+      router.replace(
         res.profile.role === "admin" ? "/dashboard/admin" : "/dashboard",
       );
-      router.refresh();
     } catch (err: any) {
       console.error("Login failed:", err);
       setErrorMsg(err.message || "Đăng nhập thất bại, vui lòng thử lại.");

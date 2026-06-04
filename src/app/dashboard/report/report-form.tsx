@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { glassPanel } from "@/lib/glass-styles";
 import { saveDailyReport, Profile, DailyReport, TaskItem } from "../../actions";
@@ -31,10 +32,30 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const focusIndexRef = useRef<number | null>(null);
 
-  const handleAddTask = () => {
-    setTasks([...tasks, { ...defaultTask }]);
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
+  const appendTask = () => {
+    focusIndexRef.current = tasks.length;
+    setTasks((prev) => [...prev, { ...defaultTask }]);
   };
+
+  useEffect(() => {
+    const idx = focusIndexRef.current;
+    if (idx === null) return;
+    focusIndexRef.current = null;
+
+    requestAnimationFrame(() => {
+      const input = inputRefs.current[idx];
+      if (!input) return;
+      input.focus({ preventScroll: true });
+      input.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [tasks.length]);
 
   const handleRemoveTask = (index: number) => {
     if (tasks.length === 1) {
@@ -56,7 +77,7 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
       const trimmed = tasks[index].title.trim();
       if (!trimmed) return;
       if (index === tasks.length - 1) {
-        handleAddTask();
+        appendTask();
       }
     }
   };
@@ -110,15 +131,16 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
 
       <div className="relative z-10 w-full max-w-xl space-y-3">
         <div className="flex items-center justify-between px-1">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-1.5 text-primary hover:text-primary-hover font-bold text-xs transition-colors cursor-pointer"
+          <Link
+            href="/dashboard"
+            prefetch
+            className="flex items-center gap-1.5 text-primary hover:text-primary-hover font-bold text-xs transition-opacity cursor-pointer active:opacity-60 touch-manipulation"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Quay lại
-          </button>
+          </Link>
 
           <span className="text-[10px] bg-white/60 text-primary border border-white/80 px-2 py-0.5 rounded-lg font-bold backdrop-blur-sm">
             {initialReport ? "CẬP NHẬT BÁO CÁO" : "BÁO CÁO MỚI"}
@@ -151,6 +173,9 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
                     {idx + 1}
                   </span>
                   <input
+                    ref={(el) => {
+                      inputRefs.current[idx] = el;
+                    }}
                     type="text"
                     placeholder="Nhập đầu việc..."
                     value={task.title}
@@ -174,7 +199,8 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
 
             <button
               type="button"
-              onClick={handleAddTask}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={appendTask}
               className="text-primary hover:text-primary-hover font-bold transition-colors flex items-center gap-1.5 cursor-pointer py-1 text-xs"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -45,8 +45,7 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
   const handleLogout = async () => {
     await logoutUser();
     localStorage.removeItem("hatico_user_session");
-    router.push("/login");
-    router.refresh();
+    router.replace("/login");
   };
 
   const handleDateChange = (newDate: string) => {
