@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PageBackground from "../dashboard/page-background";
 import { loginWithStaff, Branch, StaffMember } from "../actions";
 
 interface LoginFormProps {
@@ -119,18 +120,10 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
     "absolute z-20 mt-1 w-full bg-slate-900/85 backdrop-blur-xl border border-white/15 shadow-2xl rounded-lg py-1 max-h-60 overflow-y-auto no-scrollbar";
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style={{ backgroundImage: `url(${LOGIN_BG_URL})` }}
-        aria-hidden
-      />
-      <div
-        className="absolute inset-0 bg-gradient-to-b from-slate-900/25 via-slate-900/45 to-slate-900/65"
-        aria-hidden
-      />
-
-      <div className="relative z-10 w-full max-w-sm p-5 sm:p-6 rounded-2xl border border-white/25 bg-white/12 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
+    <>
+      <PageBackground url={LOGIN_BG_URL} variant="login" />
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center p-4 max-sm:px-3 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:pt-[max(1rem,env(safe-area-inset-top))] overflow-x-hidden">
+      <div className="w-full max-w-sm p-5 sm:p-6 rounded-2xl border border-white/25 bg-white/12 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
         <div className="flex flex-col items-center mb-5 text-center">
           <img
             src="/logo/hatico_logo.png"
@@ -402,6 +395,7 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
           </button>
         </form>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

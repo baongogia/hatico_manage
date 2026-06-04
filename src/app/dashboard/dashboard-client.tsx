@@ -3,6 +3,9 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { logoutUser, DailyReport, Profile } from "../actions";
+import { glassPanel, layoutGap, layoutPad } from "@/lib/glass-styles";
+import LiveClock from "./live-clock";
+import PageBackground from "./page-background";
 import { ReportStatusIndicator } from "./report-status-indicator";
 
 interface DashboardClientProps {
@@ -15,15 +18,6 @@ interface DashboardClientProps {
   };
   notice?: string;
 }
-
-const REPORT_CONTENT_BG_URL =
-  "https://bmmmdhinlqrlxfrtozpt.supabase.co/storage/v1/object/public/avatar/IMG_8512.jpg";
-
-const glassPanel =
-  "rounded-2xl border border-white/70 bg-white/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(15,45,89,0.1)] ring-1 ring-white/90";
-
-const layoutGap = "gap-3";
-const layoutPad = "p-3";
 
 const NOTICE_MESSAGES: Record<string, { title: string; message: string }> = {
   submitted: {
@@ -61,14 +55,6 @@ export default function DashboardClient({
   const [activeEmployeeTab, setActiveEmployeeTab] = useState<
     "today" | "history"
   >("today");
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     if (!notice || !NOTICE_MESSAGES[notice]) return;
 
@@ -98,24 +84,6 @@ export default function DashboardClient({
     return `${day}/${month}/${year}`;
   };
 
-  const formatLiveDateTime = (date: Date) => {
-    const datePart = date.toLocaleDateString("vi-VN", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-    const timePart = date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    return { datePart, timePart };
-  };
-
-  const liveDateTime = now ? formatLiveDateTime(now) : null;
-
   const canUsePersonalReports = role === "employee" || role === "admin";
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -133,15 +101,11 @@ export default function DashboardClient({
           alt="Hatico Logo"
           width={2400}
           height={1049}
+          decoding="async"
           className="h-10 sm:h-11 w-auto max-w-[160px] object-contain object-left shrink-0"
         />
-        <div className="leading-tight min-w-0 border-l border-slate-300/80 pl-2.5">
-          <p className="text-[10px] font-semibold text-slate-600 capitalize truncate">
-            {liveDateTime?.datePart ?? "\u00a0"}
-          </p>
-          <p className="text-xs font-bold text-primary tabular-nums">
-            {liveDateTime?.timePart ?? "--:--:--"}
-          </p>
+        <div className="border-l border-slate-300/80 pl-2.5 min-w-0">
+          <LiveClock />
         </div>
       </div>
 
@@ -208,24 +172,11 @@ export default function DashboardClient({
     </header>
   );
 
-  const background = (
-    <div
-      className="absolute inset-0 overflow-hidden pointer-events-none"
-      aria-hidden
-    >
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style={{ backgroundImage: `url(${REPORT_CONTENT_BG_URL})` }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/35 via-slate-900/50 to-slate-900/65" />
-    </div>
-  );
-
   return (
-    <div className="flex flex-col h-screen max-sm:min-h-[100dvh] overflow-hidden font-sans relative print:h-auto print:overflow-visible print:bg-white">
+    <div className="flex flex-col h-[100dvh] min-h-[100dvh] overflow-hidden font-sans relative print:h-auto print:overflow-visible print:bg-white">
       {canUsePersonalReports ? (
         <>
-          {background}
+          <PageBackground />
 
           <div
             className={`relative z-10 flex flex-col h-full min-h-0 overflow-hidden no-print ${layoutPad} ${layoutGap} max-sm:pt-[calc(12px+env(safe-area-inset-top,0px))] max-sm:pb-[max(12px,env(safe-area-inset-bottom,0px))]`}

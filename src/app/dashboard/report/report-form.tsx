@@ -2,18 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { glassPanel } from "@/lib/glass-styles";
 import { saveDailyReport, Profile, DailyReport, TaskItem } from "../../actions";
+import PageBackground from "../page-background";
 
 interface ReportFormProps {
   user: Profile;
   initialReport: DailyReport | null;
 }
-
-const REPORT_CONTENT_BG_URL =
-  "https://bmmmdhinlqrlxfrtozpt.supabase.co/storage/v1/object/public/avatar/IMG_8227.JPG";
-
-const glassPanel =
-  "rounded-2xl border border-white/70 bg-white/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(15,45,89,0.1)] ring-1 ring-white/90";
 
 const defaultTask: TaskItem = {
   title: "",
@@ -109,16 +105,8 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
   };
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center py-4 px-3 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style={{ backgroundImage: `url(${REPORT_CONTENT_BG_URL})` }}
-        aria-hidden
-      />
-      <div
-        className="absolute inset-0 bg-gradient-to-b from-slate-900/35 via-slate-900/50 to-slate-900/65"
-        aria-hidden
-      />
+    <div className="relative z-10 flex min-h-[100dvh] items-start justify-center py-4 px-3 max-sm:pt-[max(1rem,env(safe-area-inset-top))] overflow-x-hidden">
+      <PageBackground />
 
       <div className="relative z-10 w-full max-w-xl space-y-3">
         <div className="flex items-center justify-between px-1">

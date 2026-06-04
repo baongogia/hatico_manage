@@ -30,9 +30,19 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link
+          rel="preconnect"
+          href="https://bmmmdhinlqrlxfrtozpt.supabase.co"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://bmmmdhinlqrlxfrtozpt.supabase.co"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

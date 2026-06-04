@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart,
@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { logoutUser, AdminDashboardData, AdminStaffRow } from "../actions";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
+import LiveClock from "./live-clock";
 import { ReportStatusIndicator } from "./report-status-indicator";
 
 const CHART_COLORS = {
@@ -41,14 +42,6 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [selectedStaff, setSelectedStaff] = useState<AdminStaffRow | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const handleLogout = async () => {
     await logoutUser();
     localStorage.removeItem("hatico_user_session");
@@ -72,23 +65,6 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
     const [year, month, day] = dateString.split("-");
     return `${day}/${month}/${year}`;
   };
-
-  const liveDateTime = now
-    ? {
-        datePart: now.toLocaleDateString("vi-VN", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }),
-        timePart: now.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }),
-      }
-    : null;
 
   const reportRate = totalStaff > 0 ? Math.round((reportedCount / totalStaff) * 100) : 0;
 
@@ -145,14 +121,7 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
       <header className="bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.03)] px-4 py-1.5 flex items-center justify-between h-20 shrink-0 z-10 no-print">
         <div className="flex items-center gap-3 min-w-0">
           <img src="/logo/hatico_logo.png" alt="Hatico" className="w-16 h-16 object-contain shrink-0" />
-          <div className="leading-tight">
-            <p className="text-[11px] font-semibold text-slate-500 capitalize">
-              {liveDateTime?.datePart ?? "\u00a0"}
-            </p>
-            <p className="text-sm font-bold text-primary tabular-nums">
-              {liveDateTime?.timePart ?? "--:--:--"}
-            </p>
-          </div>
+          <LiveClock />
           <span className="hidden sm:inline-flex text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-lg font-bold uppercase">
             Admin
           </span>

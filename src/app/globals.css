@@ -30,8 +30,14 @@
   --font-mono: var(--font-geist-mono), monospace;
 }
 
+html {
+  min-height: 100dvh;
+  background-color: #0f172a;
+}
+
 body {
-  background-color: var(--color-bg-subtle);
+  min-height: 100dvh;
+  background-color: #0f172a;
   color: var(--color-foreground);
   font-family: var(--font-sans);
 }
