@@ -90,20 +90,15 @@ export interface DailyReport {
 export async function fetchLoginMetadata() {
   const supabase = createServiceClient();
 
-  const { data: branches, error: bErr } = await supabase
-    .from("branches")
-    .select("*")
-    .order("name");
-  
-  const { data: departments, error: dErr } = await supabase
-    .from("departments")
-    .select("*")
-    .order("name");
-
-  const { data: staff, error: sErr } = await supabase
-    .from("staff_staging")
-    .select("id, full_name, position, department, branch_id")
-    .order("full_name");
+  const [
+    { data: branches, error: bErr },
+    { data: departments, error: dErr },
+    { data: staff, error: sErr },
+  ] = await Promise.all([
+    supabase.from("branches").select("*").order("name"),
+    supabase.from("departments").select("*").order("name"),
+    supabase.from("staff_staging").select("id, full_name, position, department, branch_id").order("full_name"),
+  ]);
 
   if (bErr || dErr || sErr) {
     console.error("Error loading login metadata:", { bErr, dErr, sErr });
@@ -162,14 +157,19 @@ export async function loginWithStaff(
   const role = mapStaffRole(staff.position);
   const email = `staff.${staff.id}@hatico.internal`;
 
-  const { data: authList, error: listErr } = await supabase.auth.admin.listUsers();
-  if (listErr) {
-    console.error("Error listing auth users:", listErr);
-    return { error: "Không thể xác thực tài khoản" };
-  }
+  let authUser = null;
+  let existingProfile = null;
 
-  let authUser = authList.users.find((u) => u.email === email);
-  if (!authUser) {
+  const { data: profileCheck } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("full_name", staff.full_name)
+    .maybeSingle();
+
+  if (profileCheck) {
+    existingProfile = profileCheck;
+    authUser = { id: profileCheck.id };
+  } else {
     const { data: created, error: createErr } = await supabase.auth.admin.createUser({
       email,
       password: "Password123!",
@@ -177,18 +177,29 @@ export async function loginWithStaff(
       user_metadata: { full_name: staff.full_name },
     });
 
-    if (createErr || !created.user) {
-      console.error("Error creating auth user:", createErr);
-      return { error: "Không thể tạo tài khoản đăng nhập" };
+    if (created && created.user) {
+      authUser = created.user;
+    } else if (createErr && createErr.status === 422) {
+      const { data: authList, error: listErr } = await supabase.auth.admin.listUsers({
+        perPage: 1000
+      });
+      if (!listErr && authList) {
+        authUser = authList.users.find((u) => u.email === email);
+      }
     }
-    authUser = created.user;
-  }
 
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", authUser.id)
-    .maybeSingle();
+    if (!authUser) {
+      console.error("Error creating or retrieving auth user:", createErr);
+      return { error: "Không thể xác thực tài khoản" };
+    }
+
+    const { data: pCheck } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", authUser.id)
+      .maybeSingle();
+    existingProfile = pCheck;
+  }
 
   if (existingProfile) {
     const { error: updateErr } = await supabase

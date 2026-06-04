@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import PageBackground from "../dashboard/page-background";
@@ -30,45 +30,55 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [profileSearchQuery, setProfileSearchQuery] = useState("");
 
-  const [filteredStaff, setFilteredStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const deptRef = useRef<HTMLDivElement>(null);
+  const branchRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     router.prefetch("/dashboard");
     router.prefetch("/dashboard?view=summary");
   }, [router]);
 
-  const [prevSelectedDeptType, setPrevSelectedDeptType] = useState(selectedDeptType);
-  const [prevSelectedBranchId, setPrevSelectedBranchId] = useState(selectedBranchId);
-  const [prevStaff, setPrevStaff] = useState(staff);
+  // Derived filtered staff based on selection
+  const filteredStaff = useMemo(() => {
+    if (!selectedDeptType) return [];
+    if (selectedDeptType === "Kinh doanh") {
+      if (!selectedBranchId) return [];
+      return staff.filter((s) => s.branch_id === selectedBranchId);
+    }
+    if (selectedDeptType === "Kỹ thuật") {
+      return staff.filter((s) => TECH_POSITIONS.has(s.position || ""));
+    }
+    return [];
+  }, [selectedDeptType, selectedBranchId, staff]);
 
-  if (
-    selectedDeptType !== prevSelectedDeptType ||
-    selectedBranchId !== prevSelectedBranchId ||
-    staff !== prevStaff
-  ) {
-    setPrevSelectedDeptType(selectedDeptType);
-    setPrevSelectedBranchId(selectedBranchId);
-    setPrevStaff(staff);
-
+  // Reset profile selection and error when filters change
+  useEffect(() => {
     setSelectedStaffId(null);
     setErrorMsg("");
+  }, [selectedDeptType, selectedBranchId]);
 
-    if (!selectedDeptType) {
-      setFilteredStaff([]);
-    } else if (selectedDeptType === "Kinh doanh") {
-      if (!selectedBranchId) {
-        setFilteredStaff([]);
-      } else {
-        setFilteredStaff(staff.filter((s) => s.branch_id === selectedBranchId));
+  // Handle click outside to close dropdowns without blocking interactions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (deptRef.current && !deptRef.current.contains(event.target as Node)) {
+        setDeptDropdownOpen(false);
       }
-    } else if (selectedDeptType === "Kỹ thuật") {
-      setFilteredStaff(
-        staff.filter((s) => TECH_POSITIONS.has(s.position || ""))
-      );
+      if (branchRef.current && !branchRef.current.contains(event.target as Node)) {
+        setBranchDropdownOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
     }
-  }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +170,7 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1.5 relative">
+          <div ref={deptRef} className="space-y-1.5 relative">
             <label className={glassLabel}>Khối / Bộ phận</label>
             <div className="relative">
               <button
@@ -189,42 +199,36 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
               </button>
 
               {deptDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setDeptDropdownOpen(false)}
-                  />
-                  <div className={dropdownPanel}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDeptType("Kinh doanh");
-                        setSelectedBranchId("");
-                        setDeptDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
-                    >
-                      Khối Kinh doanh
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDeptType("Kỹ thuật");
-                        setSelectedBranchId("");
-                        setDeptDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
-                    >
-                      Khối Kỹ thuật
-                    </button>
-                  </div>
-                </>
+                <div className={dropdownPanel}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDeptType("Kinh doanh");
+                      setSelectedBranchId("");
+                      setDeptDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
+                  >
+                    Khối Kinh doanh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDeptType("Kỹ thuật");
+                      setSelectedBranchId("");
+                      setDeptDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
+                  >
+                    Khối Kỹ thuật
+                  </button>
+                </div>
               )}
             </div>
           </div>
 
           {selectedDeptType === "Kinh doanh" && (
-            <div className="space-y-1.5 relative transition-all">
+            <div ref={branchRef} className="space-y-1.5 relative transition-all">
               <label className={glassLabel}>Chi nhánh</label>
               <div className="relative">
                 <input
@@ -262,34 +266,28 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
                 </div>
 
                 {branchDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setBranchDropdownOpen(false)}
-                    />
-                    <div className={dropdownPanel}>
-                      {searchedBranches.length === 0 ? (
-                        <p className="text-white/50 text-xs italic px-3 py-2">
-                          Không tìm thấy chi nhánh
-                        </p>
-                      ) : (
-                        searchedBranches.map((b) => (
-                          <button
-                            key={b.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedBranchId(b.id);
-                              setBranchSearchQuery("");
-                              setBranchDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
-                          >
-                            {b.name}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </>
+                  <div className={dropdownPanel}>
+                    {searchedBranches.length === 0 ? (
+                      <p className="text-white/50 text-xs italic px-3 py-2">
+                        Không tìm thấy chi nhánh
+                      </p>
+                    ) : (
+                      searchedBranches.map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedBranchId(b.id);
+                            setBranchSearchQuery("");
+                            setBranchDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
+                        >
+                          {b.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -297,7 +295,7 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
 
           {((selectedDeptType === "Kinh doanh" && selectedBranchId) ||
             selectedDeptType === "Kỹ thuật") && (
-            <div className="space-y-1.5 relative transition-all">
+            <div ref={profileRef} className="space-y-1.5 relative transition-all">
               <label className={glassLabel}>Tên nhân viên</label>
               <div className="relative">
                 <input
@@ -335,40 +333,34 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
                 </div>
 
                 {profileDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setProfileDropdownOpen(false)}
-                    />
-                    <div className={dropdownPanel}>
-                      {searchedStaff.length === 0 ? (
-                        <p className="text-white/50 text-xs italic px-3 py-2">
-                          Không tìm thấy nhân viên
-                        </p>
-                      ) : (
-                        searchedStaff.map((s) => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedStaffId(s.id);
-                              setProfileSearchQuery("");
-                              setProfileDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
-                          >
-                            {s.full_name}
-                            {s.position ? (
-                              <span className="text-white/50 font-normal">
-                                {" "}
-                                · {s.position}
-                              </span>
-                            ) : null}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </>
+                  <div className={dropdownPanel}>
+                    {searchedStaff.length === 0 ? (
+                      <p className="text-white/50 text-xs italic px-3 py-2">
+                        Không tìm thấy nhân viên
+                      </p>
+                    ) : (
+                      searchedStaff.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStaffId(s.id);
+                            setProfileSearchQuery("");
+                            setProfileDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 text-white/90 transition-colors font-semibold"
+                        >
+                          {s.full_name}
+                          {s.position ? (
+                            <span className="text-white/50 font-normal">
+                              {" "}
+                              · {s.position}
+                            </span>
+                          ) : null}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </div>

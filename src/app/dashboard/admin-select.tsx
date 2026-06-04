@@ -61,41 +61,34 @@ export default function AdminSelect({
       </button>
 
       {open && (
-        <>
-          <div
-            className="fixed inset-0 z-10 bg-slate-900/20 sm:bg-transparent"
-            aria-hidden
-            onClick={() => setOpen(false)}
-          />
-          <ul
-            role="listbox"
-            className="absolute z-20 mt-1 left-0 right-0 sm:right-auto sm:min-w-full max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-lg border border-slate-200 py-1"
-          >
-            {options.map((opt) => (
-              <li key={opt.value} role="option" aria-selected={value === opt.value}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2.5 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                    value === opt.value
-                      ? "bg-primary/10 text-primary"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <span className="truncate">{opt.label}</span>
-                  {value === opt.value && (
-                    <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul
+          role="listbox"
+          className="absolute z-20 mt-1 left-0 right-0 sm:right-auto sm:min-w-full max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-lg border border-slate-200 py-1"
+        >
+          {options.map((opt) => (
+            <li key={opt.value} role="option" aria-selected={value === opt.value}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2.5 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                  value === opt.value
+                    ? "bg-primary/10 text-primary"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {value === opt.value && (
+                  <svg className="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
