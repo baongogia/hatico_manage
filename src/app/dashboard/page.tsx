@@ -1,4 +1,4 @@
-import { getSessionUser, getDashboardData } from "../actions";
+import { getSessionUser, getDashboardData, getAdminDashboardData } from "../actions";
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
 
@@ -21,5 +21,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  return <DashboardClient initialData={data} notice={notice} />;
+  const adminView =
+    data.role === "admin" && resolvedParams.view === "summary" ? "summary" : "personal";
+
+  let initialAdminData = null;
+  if (adminView === "summary") {
+    const adminData = await getAdminDashboardData(dateStr);
+    if (!("error" in adminData)) {
+      initialAdminData = adminData;
+    }
+  }
+
+  return (
+    <DashboardClient
+      initialData={data}
+      initialAdminView={adminView}
+      initialAdminData={initialAdminData}
+      notice={notice}
+    />
+  );
 }

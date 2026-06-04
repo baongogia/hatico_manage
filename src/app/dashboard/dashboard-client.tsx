@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { logoutUser, DailyReport, Profile } from "../actions";
+import Image from "next/image";
+import { logoutUser, getAdminDashboardData, DailyReport, Profile, AdminDashboardData } from "../actions";
 import { glassPanel, layoutGap, layoutPad } from "@/lib/glass-styles";
 import LiveClock from "./live-clock";
 import PageBackground from "./page-background";
+import { AdminViewTabs, type AdminView } from "./admin-view-tabs";
+import { AdminSummarySkeleton } from "./admin-summary-skeleton";
 import { ReportStatusIndicator } from "./report-status-indicator";
+import { SlidingSegmentedTabs } from "./sliding-segmented-tabs";
+
+const AdminSummaryPanel = dynamic(
+  () => import("./admin-summary-panel").then((m) => m.AdminSummaryPanel),
+  { loading: () => <AdminSummarySkeleton /> },
+);
 
 interface DashboardClientProps {
   initialData: {
@@ -16,6 +26,8 @@ interface DashboardClientProps {
     employees?: Profile[];
     date?: string;
   };
+  initialAdminView?: AdminView;
+  initialAdminData?: AdminDashboardData | null;
   notice?: string;
 }
 
@@ -28,13 +40,59 @@ const NOTICE_MESSAGES: Record<string, { title: string; message: string }> = {
 
 export default function DashboardClient({
   initialData,
+  initialAdminView = "personal",
+  initialAdminData = null,
   notice,
 }: DashboardClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [adminView, setAdminView] = useState<AdminView>(initialAdminView);
+  const [adminData, setAdminData] = useState<AdminDashboardData | null>(initialAdminData);
+  const [adminLoading, startAdminLoad] = useTransition();
 
-  // Destructure initial data
   const { role, profile, reports: initialReports = [] } = initialData;
+  const isAdmin = role === "admin";
+
+  const syncAdminUrl = useCallback((view: AdminView) => {
+    const url = view === "summary" ? "/dashboard?view=summary" : "/dashboard";
+    window.history.replaceState(null, "", url);
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin || adminData) return;
+    const prefetch = () => {
+      getAdminDashboardData().then((result) => {
+        if (!("error" in result)) setAdminData(result);
+      });
+    };
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(prefetch, { timeout: 2500 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = window.setTimeout(prefetch, 600);
+    return () => window.clearTimeout(t);
+  }, [isAdmin, adminData]);
+
+  const handleAdminViewChange = (view: AdminView) => {
+    if (view === "personal") {
+      setAdminView("personal");
+      syncAdminUrl("personal");
+      return;
+    }
+    if (adminData) {
+      setAdminView("summary");
+      syncAdminUrl("summary");
+      return;
+    }
+    startAdminLoad(async () => {
+      const result = await getAdminDashboardData();
+      if (!("error" in result)) {
+        setAdminData(result);
+        setAdminView("summary");
+        syncAdminUrl("summary");
+      }
+    });
+  };
 
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(
     null,
@@ -59,7 +117,9 @@ export default function DashboardClient({
     if (!notice || !NOTICE_MESSAGES[notice]) return;
 
     const { title, message } = NOTICE_MESSAGES[notice];
-    setAlertModal({ show: true, title, message });
+    setTimeout(() => {
+      setAlertModal({ show: true, title, message });
+    }, 0);
     window.history.replaceState(null, "", "/dashboard");
   }, [notice]);
 
@@ -95,12 +155,12 @@ export default function DashboardClient({
       className={`${glassPanel} px-3 py-2 flex items-center justify-between shrink-0 no-print`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <img
+        <Image
           src="/logo/hatico_logo.png"
           alt="Hatico Logo"
-          width={2400}
-          height={1049}
-          decoding="async"
+          width={160}
+          height={70}
+          priority
           className="h-10 sm:h-11 w-auto max-w-[160px] object-contain object-left shrink-0"
         />
         <div className="border-l border-slate-300/80 pl-2.5 min-w-0">
@@ -139,12 +199,23 @@ export default function DashboardClient({
           </svg>
         </button>
 
-        {role === "admin" && (
+        {isAdmin && adminView === "personal" && (
           <button
-            onClick={() => router.push("/dashboard/admin")}
-            className="hidden sm:flex items-center gap-1 text-primary hover:text-primary-hover text-xs font-bold transition-colors cursor-pointer bg-white/60 border border-white/80 px-2.5 py-1.5 rounded-lg backdrop-blur-sm"
+            type="button"
+            onClick={() => handleAdminViewChange("summary")}
+            disabled={adminLoading}
+            className="hidden sm:inline-flex items-center gap-1 text-primary hover:text-primary-hover text-xs font-bold transition-colors cursor-pointer bg-white/60 border border-white/80 px-2.5 py-1.5 rounded-lg backdrop-blur-sm touch-manipulation disabled:opacity-60"
           >
             Tổng hợp
+          </button>
+        )}
+        {isAdmin && adminView === "summary" && (
+          <button
+            type="button"
+            onClick={() => handleAdminViewChange("personal")}
+            className="hidden sm:inline-flex text-primary hover:text-primary-hover text-xs font-bold cursor-pointer bg-white/60 border border-white/80 px-2.5 py-1.5 rounded-lg backdrop-blur-sm touch-manipulation"
+          >
+            Báo cáo của tôi
           </button>
         )}
 
@@ -182,46 +253,37 @@ export default function DashboardClient({
           >
             {header}
 
-            <div
-              className={`${glassPanel} relative flex gap-1.5 p-2.5 sm:hidden shrink-0`}
-              role="tablist"
-              aria-label="Chuyển vùng báo cáo"
-            >
-              <div
-                aria-hidden
-                className="absolute top-2.5 bottom-2.5 left-2.5 w-[calc((100%-1.375rem)/2)] rounded-lg bg-primary shadow-[0_2px_8px_rgba(15,45,89,0.25)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                style={{
-                  transform:
-                    activeEmployeeTab === "history"
-                      ? "translateX(calc(100% + 0.375rem))"
-                      : "translateX(0)",
-                }}
+            {isAdmin && (
+              <AdminViewTabs
+                view={adminView}
+                onViewChange={handleAdminViewChange}
+                pending={adminLoading}
               />
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeEmployeeTab === "today"}
-                onClick={() => setActiveEmployeeTab("today")}
-                className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-colors duration-200 cursor-pointer ${
-                  activeEmployeeTab === "today" ? "text-white" : "text-slate-600"
-                }`}
-              >
-                Báo cáo hôm nay
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeEmployeeTab === "history"}
-                onClick={() => setActiveEmployeeTab("history")}
-                className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-colors duration-200 cursor-pointer ${
-                  activeEmployeeTab === "history" ? "text-white" : "text-slate-600"
-                }`}
-              >
-                Lịch sử báo cáo
-              </button>
-            </div>
+            )}
 
-            <div className={`flex flex-1 min-h-0 overflow-hidden ${layoutGap}`}>
+            {adminView === "summary" ? (
+              adminLoading && !adminData ? (
+                <AdminSummarySkeleton />
+              ) : adminData ? (
+                <AdminSummaryPanel initialData={adminData} onDataUpdate={setAdminData} />
+              ) : (
+                <AdminSummarySkeleton />
+              )
+            ) : (
+              <>
+                <SlidingSegmentedTabs
+                  className="sm:hidden shrink-0"
+                  variant="glass"
+                  ariaLabel="Chuyển vùng báo cáo"
+                  value={activeEmployeeTab}
+                  onChange={setActiveEmployeeTab}
+                  options={[
+                    { value: "today", label: "Báo cáo hôm nay" },
+                    { value: "history", label: "Lịch sử báo cáo" },
+                  ]}
+                />
+
+                <div className={`flex flex-1 min-h-0 overflow-hidden ${layoutGap}`}>
               <aside
                 className={`${
                   activeEmployeeTab === "history" ? "flex" : "hidden"
@@ -358,7 +420,9 @@ export default function DashboardClient({
                   )}
                 </div>
               </main>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </>
       ) : (

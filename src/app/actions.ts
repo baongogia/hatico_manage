@@ -32,9 +32,6 @@ export interface StaffMember {
   department: string | null;
   branch_id: string | null;
 }
-
-const TECH_POSITIONS = new Set(["Kỹ thuật", "NVKT", "Lắp mooc", "GĐKV"]);
-
 function mapStaffRole(position: string | null): Profile["role"] {
   if (!position) return "employee";
   if (position.toLowerCase().includes("admin")) return "admin";
@@ -267,11 +264,20 @@ export async function getSessionUser() {
   }
 
   // Map nested objects to match interface
-  const deptData = profile.departments as any;
+  const deptData = profile.departments as unknown as {
+    id: string;
+    name: string;
+    branch_id: string;
+    branches: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
+  } | null;
   const mappedProfile: Profile = {
     id: profile.id,
     full_name: profile.full_name,
-    role: profile.role as any,
+    role: profile.role as Profile["role"],
     department_id: profile.department_id,
     department: deptData ? {
       id: deptData.id,
@@ -623,7 +629,11 @@ export async function submitFeedback(params: {
   const supabase = createServiceClient();
   const now = new Date().toISOString();
 
-  const updateFields: any = {
+  const updateFields: {
+    feedback: string;
+    updated_at: string;
+    status?: "draft" | "submitted" | "approved";
+  } = {
     feedback: params.feedback,
     updated_at: now
   };

@@ -1,11 +1,11 @@
-import { getSessionUser, getAdminDashboardData } from "../../actions";
+import { getSessionUser } from "../../actions";
 import { redirect } from "next/navigation";
-import AdminDashboardClient from "../admin-dashboard-client";
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+/** Giữ URL cũ — chuyển sang dashboard client-side (mượt hơn). */
 export default async function AdminPage({ searchParams }: PageProps) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -13,12 +13,8 @@ export default async function AdminPage({ searchParams }: PageProps) {
 
   const resolvedParams = await searchParams;
   const dateStr = typeof resolvedParams.date === "string" ? resolvedParams.date : undefined;
+  const qs = new URLSearchParams({ view: "summary" });
+  if (dateStr) qs.set("date", dateStr);
 
-  const data = await getAdminDashboardData(dateStr);
-  if ("error" in data) {
-    console.error("Admin dashboard error:", data.error);
-    redirect("/dashboard");
-  }
-
-  return <AdminDashboardClient initialData={data} />;
+  redirect(`/dashboard?${qs.toString()}`);
 }

@@ -21,7 +21,7 @@ const defaultTask: TaskItem = {
 export default function ReportForm({ user, initialReport }: ReportFormProps) {
   const router = useRouter();
 
-  const [reportDate, setReportDate] = useState(
+  const [reportDate] = useState(
     initialReport?.report_date || new Date().toISOString().split("T")[0]
   );
   const [tasks, setTasks] = useState<TaskItem[]>(
@@ -112,8 +112,8 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
       }
 
       router.replace("/dashboard?notice=submitted");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Không thể lưu báo cáo, vui lòng thử lại.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Không thể lưu báo cáo, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

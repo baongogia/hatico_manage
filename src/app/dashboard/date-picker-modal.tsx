@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface DatePickerModalProps {
   open: boolean;
@@ -46,13 +46,19 @@ export default function DatePickerModal({
   const [viewMonth, setViewMonth] = useState(initial.month);
   const [pendingDate, setPendingDate] = useState(value);
 
-  useEffect(() => {
-    if (!open) return;
-    const parsed = parseDate(value);
-    setViewYear(parsed.year);
-    setViewMonth(parsed.month);
-    setPendingDate(value);
-  }, [open, value]);
+  const [prevValue, setPrevValue] = useState(value);
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  if (value !== prevValue || open !== prevOpen) {
+    setPrevValue(value);
+    setPrevOpen(open);
+    if (open) {
+      const parsed = parseDate(value);
+      setViewYear(parsed.year);
+      setViewMonth(parsed.month);
+      setPendingDate(value);
+    }
+  }
 
   const todayStr = new Date().toISOString().split("T")[0];
 

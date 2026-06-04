@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import PageBackground from "../dashboard/page-background";
 import { loginWithStaff, Branch, StaffMember } from "../actions";
 
@@ -35,30 +36,39 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
 
   useEffect(() => {
     router.prefetch("/dashboard");
-    router.prefetch("/dashboard/admin");
+    router.prefetch("/dashboard?view=summary");
   }, [router]);
 
-  useEffect(() => {
+  const [prevSelectedDeptType, setPrevSelectedDeptType] = useState(selectedDeptType);
+  const [prevSelectedBranchId, setPrevSelectedBranchId] = useState(selectedBranchId);
+  const [prevStaff, setPrevStaff] = useState(staff);
+
+  if (
+    selectedDeptType !== prevSelectedDeptType ||
+    selectedBranchId !== prevSelectedBranchId ||
+    staff !== prevStaff
+  ) {
+    setPrevSelectedDeptType(selectedDeptType);
+    setPrevSelectedBranchId(selectedBranchId);
+    setPrevStaff(staff);
+
     setSelectedStaffId(null);
     setErrorMsg("");
 
     if (!selectedDeptType) {
       setFilteredStaff([]);
-      return;
-    }
-
-    if (selectedDeptType === "Kinh doanh") {
+    } else if (selectedDeptType === "Kinh doanh") {
       if (!selectedBranchId) {
         setFilteredStaff([]);
-        return;
+      } else {
+        setFilteredStaff(staff.filter((s) => s.branch_id === selectedBranchId));
       }
-      setFilteredStaff(staff.filter((s) => s.branch_id === selectedBranchId));
     } else if (selectedDeptType === "Kỹ thuật") {
       setFilteredStaff(
-        staff.filter((s) => TECH_POSITIONS.has(s.position || "")),
+        staff.filter((s) => TECH_POSITIONS.has(s.position || ""))
       );
     }
-  }, [selectedDeptType, selectedBranchId, staff]);
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,11 +97,15 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
       );
 
       router.replace(
-        res.profile.role === "admin" ? "/dashboard/admin" : "/dashboard",
+        res.profile.role === "admin" ? "/dashboard?view=summary" : "/dashboard",
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error("Login failed:", err);
-      setErrorMsg(err.message || "Đăng nhập thất bại, vui lòng thử lại.");
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Đăng nhập thất bại, vui lòng thử lại."
+      );
       setLoading(false);
     }
   };
@@ -129,11 +143,12 @@ export default function LoginForm({ branches, staff }: LoginFormProps) {
       <div className="relative z-10 flex min-h-[100dvh] items-center justify-center p-4 max-sm:px-3 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:pt-[max(1rem,env(safe-area-inset-top))] overflow-x-hidden">
       <div className="w-full max-w-sm p-5 sm:p-6 rounded-2xl border border-white/25 bg-white/12 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
         <div className="flex flex-col items-center mb-5 text-center">
-          <img
+          <Image
             src="/logo/hatico_logo.png"
             alt="Hatico Logo"
-            width={2400}
-            height={1049}
+            width={200}
+            height={87}
+            priority
             className="w-[78%] max-w-[200px] h-auto mb-4 brightness-0 invert drop-shadow-sm"
           />
           <h1 className="text-xl font-bold tracking-tight text-white drop-shadow-sm">

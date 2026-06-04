@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import Image from "next/image";
 
 const DEFAULT_BG_URL =
   "https://bmmmdhinlqrlxfrtozpt.supabase.co/storage/v1/object/public/avatar/IMG_8512.jpg";
@@ -30,12 +31,12 @@ function PageBackground({ url = DEFAULT_BG_URL, variant = "app" }: PageBackgroun
       }}
       aria-hidden
     >
-      <img
+      <Image
         src={url}
         alt=""
-        decoding="async"
-        fetchPriority={variant === "login" ? "high" : "low"}
-        className="absolute left-1/2 top-1/2 min-h-full min-w-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 object-cover"
+        fill
+        priority={variant === "login"}
+        className="object-cover"
       />
       <div className={`absolute inset-0 bg-gradient-to-b ${overlayClass}`} />
     </div>
