@@ -80,78 +80,172 @@ body {
   scrollbar-width: none;
 }
 
-/* Printing styling for PDF export */
+/* Admin PDF — rendered via portal on <body>, hidden on screen */
+.admin-print-root {
+  display: none;
+}
+
 @media print {
   @page {
-    margin: 1.5cm;
+    margin: 1.2cm;
   }
 
   html,
   body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 12pt;
+    font-size: 11pt;
     height: auto !important;
     overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Hide all screen UI */
-  .no-print,
-  header,
-  nav,
-  button,
-  input,
-  select,
-  textarea,
-  .modal-backdrop {
+  /* Hide entire app UI; only portal print root */
+  body > *:not(.admin-print-root) {
     display: none !important;
   }
 
-  /* Show print document */
-  .print-area {
+  .admin-print-root {
     display: block !important;
     position: static !important;
     width: 100% !important;
-    margin: 0 !important;
     padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     visibility: visible !important;
     overflow: visible !important;
   }
 
-  .print-area * {
+  .admin-print-root,
+  .admin-print-root p,
+  .admin-print-root td,
+  .admin-print-root th {
     visibility: visible !important;
-    color: #000000 !important;
-  }
-
-  .print-logo {
-    display: block !important;
-    width: 112px !important;
-    height: 112px !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    color: #0f172a !important;
   }
 
   .print-header {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: space-between !important;
+    gap: 16pt !important;
+    padding-bottom: 10pt !important;
+    margin-bottom: 12pt !important;
+    border-bottom: 2px solid #0f2d59 !important;
   }
 
-  .print-card {
-    background: #ffffff !important;
-    box-shadow: none !important;
-    page-break-inside: avoid;
-    margin-bottom: 12pt;
-    padding: 8pt 0 !important;
-    border-bottom: 1px solid #cbd5e1 !important;
+  .print-company {
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    margin: 0 0 4pt !important;
   }
 
-  table {
-    page-break-inside: auto;
+  .print-title {
+    font-size: 16pt !important;
+    font-weight: 700 !important;
+    margin: 0 0 6pt !important;
+    color: #0f2d59 !important;
   }
 
-  tr {
-    page-break-inside: avoid;
+  .print-summary {
+    font-size: 9pt !important;
+    margin: 0 !important;
+    color: #334155 !important;
+  }
+
+  .print-logo {
+    display: block !important;
+    width: 96px !important;
+    height: 96px !important;
+    object-fit: contain !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-branch {
+    display: block !important;
+    margin-bottom: 14pt !important;
+    page-break-inside: auto !important;
+  }
+
+  .print-branch--spaced {
+    margin-top: 16pt !important;
+    padding-top: 4pt !important;
+  }
+
+  .print-branch-banner {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10pt !important;
+    margin: 10pt 0 4pt !important;
+  }
+
+  .print-branch-banner-line {
+    display: block !important;
+    flex: 1 !important;
+    height: 0 !important;
+    border-top: 1px solid #64748b !important;
+  }
+
+  .print-branch-banner-label {
+    display: block !important;
+    flex-shrink: 0 !important;
+    font-size: 10.5pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    color: #0f2d59 !important;
+    white-space: nowrap !important;
+    padding: 0 4pt !important;
+  }
+
+  .print-branch-meta {
+    display: block !important;
+    font-size: 8.5pt !important;
+    color: #475569 !important;
+    margin: 0 0 2pt !important;
+    padding-left: 2pt !important;
+  }
+
+  .print-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-table thead {
+    display: table-header-group !important;
+  }
+
+  .print-table tbody {
+    display: table-row-group !important;
+  }
+
+  .print-table tr {
+    display: table-row !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    display: table-cell !important;
   }
 }
 
+/* Legacy .print-area (if any remain) */
+@media print {
+  .print-area {
+    display: block !important;
+  }
+}
+
+@media screen {
+  .no-print {
+    /* screen only marker */
+  }
+}

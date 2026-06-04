@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Image from "next/image";
+import { createPortal } from "react-dom";
+import { AdminSummaryPrintDocument } from "./admin-summary-print-document";
 import {
   BarChart,
   Bar,
@@ -50,6 +51,11 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
   const [selectedStaff, setSelectedStaff] = useState<AdminStaffRow | null>(null);
   const [staffSearch, setStaffSearch] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [printMounted, setPrintMounted] = useState(false);
+
+  useEffect(() => {
+    setPrintMounted(true);
+  }, []);
 
   useEffect(() => {
     setData(initialData);
@@ -109,15 +115,31 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
   };
 
   const handleExportExcel = () => {
-    const headers = ["Họ và tên", "Chi nhánh", "Bộ phận", "Chức danh", "Việc làm"];
+    const headers = ["Họ và tên", "Chi nhánh", "Bộ phận", "Chức danh", "Trạng thái", "Việc làm"];
     const rows: string[][] = [];
-    for (const s of initialStaff) {
-      if (s.tasks.length > 0) {
-        for (const title of s.tasks) {
-          rows.push([s.full_name, s.branch_name, s.department || "", s.position || "", title]);
+    const exportStaff =
+      branchFilter === "all"
+        ? initialStaff
+        : initialStaff.filter((s) => s.branch_id === branchFilter);
+    const groups = new Map<string, AdminStaffRow[]>();
+    for (const s of exportStaff) {
+      const key = s.branch_name?.trim() || "Chưa gán chi nhánh";
+      const list = groups.get(key) ?? [];
+      list.push(s);
+      groups.set(key, list);
+    }
+    const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "vi"));
+    for (const [branchName, members] of sortedGroups) {
+      rows.push([`--- ${branchName} ---`, "", "", "", "", ""]);
+      for (const s of members.sort((x, y) => x.full_name.localeCompare(y.full_name, "vi"))) {
+        const status = s.hasReport ? "Đã báo cáo" : "Chưa báo cáo";
+        if (s.tasks.length > 0) {
+          for (const title of s.tasks) {
+            rows.push([s.full_name, branchName, s.department || "", s.position || "", status, title]);
+          }
+        } else {
+          rows.push([s.full_name, branchName, s.department || "", s.position || "", status, "-"]);
         }
-      } else {
-        rows.push([s.full_name, s.branch_name, s.department || "", s.position || "", "-"]);
       }
     }
     const csvContent =
@@ -136,8 +158,9 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
   };
 
   return (
+    <>
     <div
-      className={`flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/92 shadow-[0_8px_32px_rgba(15,45,89,0.08)] no-print transition-opacity duration-200 ${
+      className={`no-print flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/92 shadow-[0_8px_32px_rgba(15,45,89,0.08)] transition-opacity duration-200 ${
         isPending ? "opacity-70 pointer-events-none" : "opacity-100"
       }`}
     >
@@ -362,34 +385,6 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
         </div>
       </div>
 
-      <div className="print-area hidden print:block p-6">
-        <div className="print-header flex items-center justify-between gap-6 pb-4 border-b border-slate-200 mb-4">
-          <div>
-            <p className="text-xs font-bold uppercase">CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO</p>
-            <h1 className="text-xl font-bold">TỔNG HỢP BÁO CÁO — {formatDateDisplay(selectedDate)}</h1>
-          </div>
-          <Image src="/logo/hatico_logo.png" alt="" width={112} height={112} className="print-logo object-contain" />
-        </div>
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr className="border-b font-semibold bg-slate-50">
-              <th className="py-2 px-2 text-left">Họ tên</th>
-              <th className="py-2 px-2 text-left">Chi nhánh</th>
-              <th className="py-2 px-2 text-left">Việc làm</th>
-            </tr>
-          </thead>
-          <tbody>
-            {initialStaff.map((s) => (
-              <tr key={s.id} className="border-b border-slate-100">
-                <td className="py-2 px-2 font-semibold">{s.full_name}</td>
-                <td className="py-2 px-2">{s.branch_name}</td>
-                <td className="py-2 px-2">{s.tasks.length ? s.tasks.join("; ") : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       <DatePickerModal
         open={showDatePicker}
         value={selectedDate}
@@ -398,5 +393,20 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
         title="Chọn ngày xem báo cáo"
       />
     </div>
+
+      {printMounted &&
+        createPortal(
+          <AdminSummaryPrintDocument
+            selectedDate={selectedDate}
+            totalStaff={totalStaff}
+            reportedCount={reportedCount}
+            missingCount={missingCount}
+            reportRate={reportRate}
+            staff={initialStaff}
+            branchFilter={branchFilter}
+          />,
+          document.body
+        )}
+    </>
   );
 }

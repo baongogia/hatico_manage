@@ -2,7 +2,7 @@ import { glassPanel } from "@/lib/glass-styles";
 
 export function AdminSummarySkeleton() {
   return (
-    <div className={`flex-1 min-h-0 overflow-hidden flex flex-col ${glassPanel} animate-pulse`}>
+    <div className={`no-print flex-1 min-h-0 overflow-hidden flex flex-col ${glassPanel} animate-pulse`}>
       <div className="p-3 border-b border-white/50 grid grid-cols-2 gap-2 shrink-0">
         <div className="h-10 rounded-lg bg-white/50" />
         <div className="h-10 rounded-lg bg-white/50" />

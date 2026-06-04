@@ -19,7 +19,7 @@ function PageBackground({ url = DEFAULT_BG_URL, variant = "app" }: PageBackgroun
 
   return (
     <div
-      className="fixed z-0 overflow-hidden bg-slate-900 pointer-events-none"
+      className="fixed z-0 overflow-hidden bg-slate-900 pointer-events-none no-print"
       style={{
         top: "calc(-1 * env(safe-area-inset-top, 0px))",
         right: "calc(-1 * env(safe-area-inset-right, 0px))",

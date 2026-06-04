@@ -24,7 +24,7 @@ export function AdminViewTabs({ view, onViewChange, pending, className = "" }: A
 
   return (
     <nav
-      className={`${glassPanel} relative flex gap-1.5 p-2.5 shrink-0 touch-manipulation ${pending ? "opacity-90" : ""} ${className}`}
+      className={`${glassPanel} no-print relative flex gap-1.5 p-2.5 shrink-0 touch-manipulation ${pending ? "opacity-90" : ""} ${className}`}
       aria-label="Chuyển chế độ admin"
     >
       <div

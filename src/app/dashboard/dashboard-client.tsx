@@ -249,7 +249,7 @@ export default function DashboardClient({
           <PageBackground />
 
           <div
-            className={`relative z-10 flex flex-col h-full min-h-0 overflow-hidden no-print ${layoutPad} ${layoutGap} max-sm:pt-[calc(12px+env(safe-area-inset-top,0px))] max-sm:pb-[max(12px,env(safe-area-inset-bottom,0px))]`}
+            className={`relative z-10 flex flex-col h-full min-h-0 overflow-hidden print:h-auto print:min-h-0 print:overflow-visible ${layoutPad} ${layoutGap} max-sm:pt-[calc(12px+env(safe-area-inset-top,0px))] max-sm:pb-[max(12px,env(safe-area-inset-bottom,0px))] print:p-0 print:gap-0`}
           >
             {header}
 
@@ -270,7 +270,7 @@ export default function DashboardClient({
                 <AdminSummarySkeleton />
               )
             ) : (
-              <>
+              <div className="no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0">
                 <SlidingSegmentedTabs
                   className="sm:hidden shrink-0"
                   variant="glass"
@@ -421,7 +421,7 @@ export default function DashboardClient({
                 </div>
               </main>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </>
