@@ -270,7 +270,7 @@ export default function DashboardClient({
                 <AdminSummarySkeleton />
               )
             ) : (
-              <div className="no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0">
+              <div className="no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 max-sm:gap-3">
                 <SlidingSegmentedTabs
                   className="sm:hidden shrink-0"
                   variant="glass"
