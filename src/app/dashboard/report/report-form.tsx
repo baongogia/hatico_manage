@@ -168,7 +168,7 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
                     value={task.title}
                     onChange={(e) => handleTaskChange(idx, e.target.value)}
                     onKeyDown={(e) => handleTaskKeyDown(e, idx)}
-                    className="flex-1 bg-transparent text-slate-900 text-xs focus:outline-none placeholder:text-slate-400 min-w-0"
+                    className="flex-1 bg-transparent text-slate-900 text-base sm:text-xs focus:outline-none placeholder:text-slate-400 min-w-0"
                   />
                   <button
                     type="button"

@@ -36,6 +36,15 @@ body {
   font-family: var(--font-sans);
 }
 
+/* iOS Safari: font-size < 16px on focus triggers auto-zoom */
+@media screen and (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @keyframes slideIn {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

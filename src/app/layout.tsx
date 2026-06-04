@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   description: "Hệ thống quản lý công việc và báo cáo hàng ngày đa phân cấp - Công ty Cổ phần Xuất nhập khẩu Hatico",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

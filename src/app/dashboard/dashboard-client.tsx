@@ -222,35 +222,49 @@ export default function DashboardClient({
   );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden font-sans relative print:h-auto print:overflow-visible print:bg-white">
+    <div className="flex flex-col h-screen max-sm:min-h-[100dvh] overflow-hidden font-sans relative print:h-auto print:overflow-visible print:bg-white">
       {canUsePersonalReports ? (
         <>
           {background}
 
           <div
-            className={`relative z-10 flex flex-col h-full min-h-0 overflow-hidden no-print ${layoutPad} ${layoutGap}`}
+            className={`relative z-10 flex flex-col h-full min-h-0 overflow-hidden no-print ${layoutPad} ${layoutGap} max-sm:pt-[calc(12px+env(safe-area-inset-top,0px))] max-sm:pb-[max(12px,env(safe-area-inset-bottom,0px))]`}
           >
             {header}
 
             <div
-              className={`${glassPanel} px-3 py-1 flex sm:hidden justify-around shrink-0`}
+              className={`${glassPanel} relative flex gap-1.5 p-2.5 sm:hidden shrink-0`}
+              role="tablist"
+              aria-label="Chuyển vùng báo cáo"
             >
+              <div
+                aria-hidden
+                className="absolute top-2.5 bottom-2.5 left-2.5 w-[calc((100%-1.375rem)/2)] rounded-lg bg-primary shadow-[0_2px_8px_rgba(15,45,89,0.25)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                style={{
+                  transform:
+                    activeEmployeeTab === "history"
+                      ? "translateX(calc(100% + 0.375rem))"
+                      : "translateX(0)",
+                }}
+              />
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeEmployeeTab === "today"}
                 onClick={() => setActiveEmployeeTab("today")}
-                className={`py-1.5 text-xs font-bold border-b-2 transition-all ${
-                  activeEmployeeTab === "today"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-slate-500"
+                className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-colors duration-200 cursor-pointer ${
+                  activeEmployeeTab === "today" ? "text-white" : "text-slate-600"
                 }`}
               >
                 Báo cáo hôm nay
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeEmployeeTab === "history"}
                 onClick={() => setActiveEmployeeTab("history")}
-                className={`py-1.5 text-xs font-bold border-b-2 transition-all ${
-                  activeEmployeeTab === "history"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-slate-500"
+                className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-colors duration-200 cursor-pointer ${
+                  activeEmployeeTab === "history" ? "text-white" : "text-slate-600"
                 }`}
               >
                 Lịch sử báo cáo
