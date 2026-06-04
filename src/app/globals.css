@@ -60,47 +60,76 @@ body {
 
 /* Printing styling for PDF export */
 @media print {
+  @page {
+    margin: 1.5cm;
+  }
+
+  html,
   body {
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 12pt;
+    height: auto !important;
+    overflow: visible !important;
   }
-  
-  /* Hide all interactive and layout items that are not part of the print content */
+
+  /* Hide all screen UI */
+  .no-print,
   header,
   nav,
   button,
   input,
   select,
   textarea,
-  .no-print,
   .modal-backdrop {
     display: none !important;
   }
-  
-  /* Display only the print area container and stretch it to full width */
+
+  /* Show print document */
   .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
+    display: block !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     visibility: visible !important;
+    overflow: visible !important;
   }
 
   .print-area * {
     visibility: visible !important;
+    color: #000000 !important;
   }
 
-  /* Optimize card designs for standard black and white print layout */
+  .print-logo {
+    display: block !important;
+    width: 112px !important;
+    height: 112px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
   .print-card {
     background: #ffffff !important;
     box-shadow: none !important;
     page-break-inside: avoid;
     margin-bottom: 12pt;
-    padding: 12pt !important;
-    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 8pt 0 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
   }
 }
 

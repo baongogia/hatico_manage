@@ -19,10 +19,55 @@ export interface Department {
 export interface Profile {
   id: string;
   full_name: string;
-  role: "employee" | "department_manager" | "branch_director";
+  role: "employee" | "department_manager" | "branch_director" | "admin";
   department_id: string;
   avatar_url?: string;
   department?: Department & { branch?: Branch };
+}
+
+export interface StaffMember {
+  id: number;
+  full_name: string;
+  position: string | null;
+  department: string | null;
+  branch_id: string | null;
+}
+
+const TECH_POSITIONS = new Set(["Kỹ thuật", "NVKT", "Lắp mooc", "GĐKV"]);
+
+function mapStaffRole(position: string | null): Profile["role"] {
+  if (!position) return "employee";
+  if (position.toLowerCase().includes("admin")) return "admin";
+  return "employee";
+}
+
+export interface AdminBranchStat {
+  branchId: string;
+  branchName: string;
+  total: number;
+  reported: number;
+}
+
+export interface AdminStaffRow {
+  id: number;
+  full_name: string;
+  position: string | null;
+  department: string | null;
+  branch_id: string | null;
+  branch_name: string;
+  hasReport: boolean;
+  tasks: string[];
+  report_id?: string;
+}
+
+export interface AdminDashboardData {
+  profile: Profile;
+  date: string;
+  totalStaff: number;
+  reportedCount: number;
+  missingCount: number;
+  branchStats: AdminBranchStat[];
+  staff: AdminStaffRow[];
 }
 
 export interface TaskItem {
@@ -58,20 +103,133 @@ export async function fetchLoginMetadata() {
     .select("*")
     .order("name");
 
-  const { data: profiles, error: pErr } = await supabase
-    .from("profiles")
-    .select("id, full_name, role, department_id")
+  const { data: staff, error: sErr } = await supabase
+    .from("staff_staging")
+    .select("id, full_name, position, department, branch_id")
     .order("full_name");
 
-  if (bErr || dErr || pErr) {
-    console.error("Error loading login metadata:", { bErr, dErr, pErr });
-    return { branches: [], departments: [], profiles: [] };
+  if (bErr || dErr || sErr) {
+    console.error("Error loading login metadata:", { bErr, dErr, sErr });
+    return { branches: [], departments: [], staff: [] };
   }
 
   return {
     branches: (branches || []) as Branch[],
     departments: (departments || []) as Department[],
-    profiles: (profiles || []) as Profile[],
+    staff: (staff || []) as StaffMember[],
+  };
+}
+
+// Login via staff_staging selection — auto-provisions auth user + profile
+export async function loginWithStaff(
+  staffId: number,
+  deptType: "Kinh doanh" | "Kỹ thuật"
+) {
+  const supabase = createServiceClient();
+
+  const { data: staff, error: staffErr } = await supabase
+    .from("staff_staging")
+    .select("id, full_name, position, department, branch_id")
+    .eq("id", staffId)
+    .single();
+
+  if (staffErr || !staff) {
+    return { error: "Không tìm thấy nhân viên" };
+  }
+
+  if (!staff.branch_id) {
+    return { error: "Nhân viên chưa được gán chi nhánh trong hệ thống" };
+  }
+
+  let { data: dept } = await supabase
+    .from("departments")
+    .select("id")
+    .eq("branch_id", staff.branch_id)
+    .eq("name", deptType)
+    .maybeSingle();
+
+  if (!dept) {
+    const { data: newDept, error: deptErr } = await supabase
+      .from("departments")
+      .insert({ branch_id: staff.branch_id, name: deptType })
+      .select("id")
+      .single();
+
+    if (deptErr || !newDept) {
+      console.error("Error creating department:", deptErr);
+      return { error: "Không thể tạo bộ phận cho chi nhánh" };
+    }
+    dept = newDept;
+  }
+
+  const role = mapStaffRole(staff.position);
+  const email = `staff.${staff.id}@hatico.internal`;
+
+  const { data: authList, error: listErr } = await supabase.auth.admin.listUsers();
+  if (listErr) {
+    console.error("Error listing auth users:", listErr);
+    return { error: "Không thể xác thực tài khoản" };
+  }
+
+  let authUser = authList.users.find((u) => u.email === email);
+  if (!authUser) {
+    const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+      email,
+      password: "Password123!",
+      email_confirm: true,
+      user_metadata: { full_name: staff.full_name },
+    });
+
+    if (createErr || !created.user) {
+      console.error("Error creating auth user:", createErr);
+      return { error: "Không thể tạo tài khoản đăng nhập" };
+    }
+    authUser = created.user;
+  }
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", authUser.id)
+    .maybeSingle();
+
+  if (existingProfile) {
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({
+        full_name: staff.full_name,
+        role,
+        department_id: dept.id,
+      })
+      .eq("id", authUser.id);
+
+    if (updateErr) {
+      console.error("Error updating profile:", updateErr);
+      return { error: "Không thể cập nhật hồ sơ nhân viên" };
+    }
+  } else {
+    const { error: insertErr } = await supabase.from("profiles").insert({
+      id: authUser.id,
+      full_name: staff.full_name,
+      role,
+      department_id: dept.id,
+    });
+
+    if (insertErr) {
+      console.error("Error inserting profile:", insertErr);
+      return { error: "Không thể tạo hồ sơ nhân viên" };
+    }
+  }
+
+  await loginUser(authUser.id, role, staff.full_name);
+
+  return {
+    success: true,
+    profile: {
+      id: authUser.id,
+      full_name: staff.full_name,
+      role,
+    },
   };
 }
 
@@ -258,24 +416,91 @@ export async function getDashboardData(selectedDate?: string) {
   return { error: "Unknown role" };
 }
 
+// Admin dashboard — toàn hệ thống (staff_staging + báo cáo theo ngày)
+export async function getAdminDashboardData(selectedDate?: string) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const dateStr = selectedDate || new Date().toISOString().split("T")[0];
+
+  const [{ data: branches }, { data: staff }, { data: profiles }, { data: reports }] =
+    await Promise.all([
+      supabase.from("branches").select("id, name, code").order("name"),
+      supabase
+        .from("staff_staging")
+        .select("id, full_name, position, department, branch_id")
+        .order("full_name"),
+      supabase.from("profiles").select("id, full_name"),
+      supabase.from("daily_reports").select("*").eq("report_date", dateStr),
+    ]);
+
+  const branchMap = new Map((branches || []).map((b) => [b.id, b.name]));
+  const profileByName = new Map(
+    (profiles || []).map((p) => [p.full_name.trim().toLowerCase(), p.id])
+  );
+  const reportByUserId = new Map(
+    (reports || []).map((r) => [r.user_id, r as DailyReport])
+  );
+
+  const staffRows: AdminStaffRow[] = (staff || []).map((s) => {
+    const profileId = profileByName.get(s.full_name.trim().toLowerCase());
+    const report = profileId ? reportByUserId.get(profileId) : undefined;
+    const tasks = (report?.tasks_data || [])
+      .map((t: TaskItem) => t.title)
+      .filter(Boolean);
+
+    return {
+      id: s.id,
+      full_name: s.full_name,
+      position: s.position,
+      department: s.department,
+      branch_id: s.branch_id,
+      branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
+      hasReport: !!report,
+      tasks,
+      report_id: report?.id,
+    };
+  });
+
+  const branchStatsMap = new Map<string, AdminBranchStat>();
+  for (const row of staffRows) {
+    const key = row.branch_id || "unknown";
+    const name = row.branch_id ? branchMap.get(row.branch_id) || "Khác" : "Chưa gán CN";
+    const existing = branchStatsMap.get(key) || {
+      branchId: key,
+      branchName: name,
+      total: 0,
+      reported: 0,
+    };
+    existing.total += 1;
+    if (row.hasReport) existing.reported += 1;
+    branchStatsMap.set(key, existing);
+  }
+
+  const reportedCount = staffRows.filter((s) => s.hasReport).length;
+
+  return {
+    profile,
+    date: dateStr,
+    totalStaff: staffRows.length,
+    reportedCount,
+    missingCount: staffRows.length - reportedCount,
+    branchStats: Array.from(branchStatsMap.values()).sort((a, b) =>
+      a.branchName.localeCompare(b.branchName, "vi")
+    ),
+    staff: staffRows,
+  } as AdminDashboardData;
+}
+
 // 3. Fetch a single report by ID
 export async function getReportDetail(reportId: string) {
   const supabase = createServiceClient();
   const { data: report, error } = await supabase
     .from("daily_reports")
-    .select(`
-      *,
-      profiles (
-        id,
-        full_name,
-        role,
-        department_id,
-        departments (
-          id,
-          name
-        )
-      )
-    `)
+    .select("*")
     .eq("id", reportId)
     .single();
 
@@ -284,23 +509,7 @@ export async function getReportDetail(reportId: string) {
     return null;
   }
 
-  const prof = report.profiles as any;
-  const mappedProfile: Profile | undefined = prof ? {
-    id: prof.id,
-    full_name: prof.full_name,
-    role: prof.role,
-    department_id: prof.department_id,
-    department: prof.departments ? {
-      id: prof.departments.id,
-      name: prof.departments.name,
-      branch_id: ""
-    } : undefined
-  } : undefined;
-
-  return {
-    ...report,
-    profile: mappedProfile
-  } as DailyReport;
+  return report as DailyReport;
 }
 
 // 4. Save (create or update) a daily report
