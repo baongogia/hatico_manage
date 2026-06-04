@@ -41,9 +41,10 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [selectedStaff, setSelectedStaff] = useState<AdminStaffRow | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -72,21 +73,22 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
     return `${day}/${month}/${year}`;
   };
 
-  const liveDateTime = (() => {
-    const datePart = now.toLocaleDateString("vi-VN", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-    const timePart = now.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    return { datePart, timePart };
-  })();
+  const liveDateTime = now
+    ? {
+        datePart: now.toLocaleDateString("vi-VN", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }),
+        timePart: now.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }),
+      }
+    : null;
 
   const reportRate = totalStaff > 0 ? Math.round((reportedCount / totalStaff) * 100) : 0;
 
@@ -144,8 +146,12 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
         <div className="flex items-center gap-3 min-w-0">
           <img src="/logo/hatico_logo.png" alt="Hatico" className="w-16 h-16 object-contain shrink-0" />
           <div className="leading-tight">
-            <p className="text-[11px] font-semibold text-slate-500 capitalize">{liveDateTime.datePart}</p>
-            <p className="text-sm font-bold text-primary tabular-nums">{liveDateTime.timePart}</p>
+            <p className="text-[11px] font-semibold text-slate-500 capitalize">
+              {liveDateTime?.datePart ?? "\u00a0"}
+            </p>
+            <p className="text-sm font-bold text-primary tabular-nums">
+              {liveDateTime?.timePart ?? "--:--:--"}
+            </p>
           </div>
           <span className="hidden sm:inline-flex text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-lg font-bold uppercase">
             Admin
@@ -156,6 +162,12 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
             <p className="font-bold text-slate-800">{profile.full_name}</p>
             <p className="text-slate-400">Quản trị hệ thống</p>
           </div>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-primary hover:text-primary-hover text-xs font-bold cursor-pointer bg-primary/10 px-2.5 py-1.5 rounded-lg shrink-0"
+          >
+            Báo cáo của tôi
+          </button>
           <button
             onClick={handleReload}
             disabled={isPending}

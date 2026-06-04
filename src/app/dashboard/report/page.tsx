@@ -9,8 +9,7 @@ interface PageProps {
 export default async function ReportPage({ searchParams }: PageProps) {
   const user = await getSessionUser();
   
-  // Only employees can write/edit reports
-  if (!user || user.role !== "employee") {
+  if (!user || (user.role !== "employee" && user.role !== "admin")) {
     redirect("/dashboard");
   }
 

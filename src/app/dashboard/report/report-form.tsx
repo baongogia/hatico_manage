@@ -9,6 +9,12 @@ interface ReportFormProps {
   initialReport: DailyReport | null;
 }
 
+const REPORT_CONTENT_BG_URL =
+  "https://bmmmdhinlqrlxfrtozpt.supabase.co/storage/v1/object/public/avatar/IMG_8227.JPG";
+
+const glassPanel =
+  "rounded-2xl border border-white/70 bg-white/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(15,45,89,0.1)] ring-1 ring-white/90";
+
 const defaultTask: TaskItem = {
   title: "",
   progress: "",
@@ -103,13 +109,22 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-4 px-3">
-      <div className="max-w-xl mx-auto space-y-3">
+    <div className="relative min-h-screen flex items-start justify-center py-4 px-3 overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+        style={{ backgroundImage: `url(${REPORT_CONTENT_BG_URL})` }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-slate-900/35 via-slate-900/50 to-slate-900/65"
+        aria-hidden
+      />
 
+      <div className="relative z-10 w-full max-w-xl space-y-3">
         <div className="flex items-center justify-between px-1">
           <button
             onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-primary hover:text-primary-hover font-bold text-xs transition-colors cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -117,34 +132,34 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
             Quay lại
           </button>
 
-          <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg font-bold">
+          <span className="text-[10px] bg-white/60 text-primary border border-white/80 px-2 py-0.5 rounded-lg font-bold backdrop-blur-sm">
             {initialReport ? "CẬP NHẬT BÁO CÁO" : "BÁO CÁO MỚI"}
           </span>
         </div>
 
-        <div className="bg-white p-3.5 rounded-lg shadow-sm">
+        <div className={`${glassPanel} p-3.5`}>
           <h2 className="text-sm font-bold text-primary">
             {initialReport ? "Chỉnh sửa báo cáo" : "Báo cáo ngày"} {formatDateDisplay(reportDate)}
           </h2>
-          <p className="text-slate-400 text-[10px] mt-0.5">
-            Nhân sự: <span className="font-bold text-slate-600">{user.full_name}</span> - Khối {user.department?.name}
+          <p className="text-slate-700 text-[10px] mt-0.5">
+            Nhân sự: <span className="font-bold text-slate-900">{user.full_name}</span> - Khối{" "}
+            {user.department?.name}
             {user.department?.branch && `, Chi nhánh ${user.department.branch.name}`}
           </p>
         </div>
 
         <div className="space-y-3">
-
-          <div className="bg-white p-3 rounded-lg shadow-sm space-y-2">
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Danh sách đầu việc</h3>
-            <p className="text-[10px] text-slate-400">Nhập tên công việc, Enter để thêm dòng mới</p>
+          <div className={`${glassPanel} p-3 space-y-2`}>
+            <h3 className="text-xs font-bold text-primary uppercase tracking-wide">Danh sách đầu việc</h3>
+            <p className="text-[10px] text-slate-600">Nhập tên công việc, Enter để thêm dòng mới</p>
 
             <div className="space-y-1.5">
               {tasks.map((task, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 bg-slate-50 px-2.5 py-1.5 rounded-lg"
+                  className="flex items-center gap-2 bg-white/70 border border-slate-200/80 px-2.5 py-1.5 rounded-lg"
                 >
-                  <span className="text-[10px] text-slate-400 font-bold w-4 shrink-0 text-center">
+                  <span className="text-[10px] text-slate-500 font-bold w-4 shrink-0 text-center">
                     {idx + 1}
                   </span>
                   <input
@@ -153,12 +168,12 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
                     value={task.title}
                     onChange={(e) => handleTaskChange(idx, e.target.value)}
                     onKeyDown={(e) => handleTaskKeyDown(e, idx)}
-                    className="flex-1 bg-transparent text-slate-800 text-xs focus:outline-none placeholder:text-slate-300 min-w-0"
+                    className="flex-1 bg-transparent text-slate-900 text-xs focus:outline-none placeholder:text-slate-400 min-w-0"
                   />
                   <button
                     type="button"
                     onClick={() => handleRemoveTask(idx)}
-                    className="text-slate-300 hover:text-rose-500 p-0.5 shrink-0 transition-colors cursor-pointer"
+                    className="text-slate-400 hover:text-rose-500 p-0.5 shrink-0 transition-colors cursor-pointer"
                     aria-label="Xóa đầu việc"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +197,7 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
           </div>
 
           {errorMsg && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-semibold">
+            <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold">
               {errorMsg}
             </div>
           )}
@@ -191,13 +206,11 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
             type="button"
             disabled={loading}
             onClick={handleSubmit}
-            className="w-full bg-primary text-white hover:bg-primary-hover font-bold px-6 py-3 rounded-lg shadow-md transition-colors text-xs cursor-pointer text-center"
+            className="w-full bg-primary text-white hover:bg-primary-hover disabled:bg-slate-200 disabled:text-slate-400 font-bold px-6 py-3 rounded-lg shadow-md transition-colors text-xs cursor-pointer text-center"
           >
             {loading ? "Đang gửi..." : initialReport ? "Cập nhật báo cáo" : "Gửi báo cáo"}
           </button>
-
         </div>
-
       </div>
     </div>
   );

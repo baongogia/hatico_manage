@@ -296,18 +296,17 @@ export async function getDashboardData(selectedDate?: string) {
   const supabase = createServiceClient();
   const todayStr = selectedDate || new Date().toISOString().split("T")[0];
 
-  if (profile.role === "employee") {
-    // Employees see all their reports
+  if (profile.role === "employee" || profile.role === "admin") {
     const { data: reports, error } = await supabase
       .from("daily_reports")
       .select("*")
       .eq("user_id", profile.id)
       .order("report_date", { ascending: false });
 
-    if (error) console.error("Error fetching employee reports:", error);
+    if (error) console.error("Error fetching personal reports:", error);
 
     return {
-      role: "employee",
+      role: profile.role,
       profile,
       reports: (reports || []) as DailyReport[],
     };
