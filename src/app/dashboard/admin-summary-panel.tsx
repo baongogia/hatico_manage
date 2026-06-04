@@ -17,6 +17,7 @@ import {
   Legend,
 } from "recharts";
 import { getAdminDashboardData, AdminDashboardData, AdminStaffRow } from "../actions";
+import { downloadAdminReportExcel } from "@/lib/admin-report-export";
 import AdminSelect, { adminControlClass } from "./admin-select";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
 import { ReportStatusIndicator } from "./report-status-indicator";
@@ -114,47 +115,20 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
     });
   };
 
-  const handleExportExcel = () => {
-    const headers = ["Họ và tên", "Chi nhánh", "Bộ phận", "Chức danh", "Trạng thái", "Việc làm"];
-    const rows: string[][] = [];
-    const exportStaff =
-      branchFilter === "all"
-        ? initialStaff
-        : initialStaff.filter((s) => s.branch_id === branchFilter);
-    const groups = new Map<string, AdminStaffRow[]>();
-    for (const s of exportStaff) {
-      const key = s.branch_name?.trim() || "Chưa gán chi nhánh";
-      const list = groups.get(key) ?? [];
-      list.push(s);
-      groups.set(key, list);
+  const handleExportExcel = async () => {
+    try {
+      await downloadAdminReportExcel(`Bao_cao_Hatico_${selectedDate}.xlsx`, {
+        selectedDate,
+        totalStaff,
+        reportedCount,
+        missingCount,
+        reportRate,
+        staff: initialStaff,
+        branchFilter,
+      });
+    } catch {
+      window.alert("Không xuất được Excel. Vui lòng thử lại.");
     }
-    const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "vi"));
-    for (const [branchName, members] of sortedGroups) {
-      rows.push([`--- ${branchName} ---`, "", "", "", "", ""]);
-      for (const s of members.sort((x, y) => x.full_name.localeCompare(y.full_name, "vi"))) {
-        const status = s.hasReport ? "Đã báo cáo" : "Chưa báo cáo";
-        if (s.tasks.length > 0) {
-          for (const title of s.tasks) {
-            rows.push([s.full_name, branchName, s.department || "", s.position || "", status, title]);
-          }
-        } else {
-          rows.push([s.full_name, branchName, s.department || "", s.position || "", status, "-"]);
-        }
-      }
-    }
-    const csvContent =
-      "\uFEFF" +
-      [headers.join(","), ...rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join(
-        "\n"
-      );
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Bao_cao_Hatico_${selectedDate}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -199,7 +173,8 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
             <button
               type="button"
               onClick={handleExportExcel}
-              className="h-10 flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 border border-emerald-700 shadow-sm cursor-pointer touch-manipulation transition-colors"
+              disabled={isPending}
+              className="h-10 flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 border border-emerald-700 shadow-sm cursor-pointer touch-manipulation transition-colors disabled:opacity-60"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
@@ -318,7 +293,7 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
                 />
               </label>
             </div>
-            <div className="overflow-x-auto overflow-y-hidden px-2 py-2 flex flex-nowrap gap-1.5 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
+              <div className="overflow-x-auto overflow-y-hidden px-2 py-2 flex flex-nowrap gap-1.5 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]">
               {displayedStaff.length === 0 ? (
                 <p className="text-slate-400 text-[11px] italic py-3 px-2 shrink-0">
                   {staffSearch.trim() ? "Không tìm thấy nhân sự" : "Không có nhân sự phù hợp"}

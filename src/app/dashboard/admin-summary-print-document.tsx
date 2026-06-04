@@ -2,6 +2,7 @@
 
 import { useMemo, type CSSProperties } from "react";
 import type { AdminStaffRow } from "../actions";
+import { formatReportDate, groupStaffByBranch } from "@/lib/admin-report-export";
 
 type AdminSummaryPrintDocumentProps = {
   selectedDate: string;
@@ -12,11 +13,6 @@ type AdminSummaryPrintDocumentProps = {
   staff: AdminStaffRow[];
   branchFilter: string;
 };
-
-function formatDateDisplay(dateString: string) {
-  const [year, month, day] = dateString.split("-");
-  return `${day}/${month}/${year}`;
-}
 
 const cellStyle: CSSProperties = {
   border: "1px solid #475569",
@@ -49,32 +45,17 @@ export function AdminSummaryPrintDocument({
   staff,
   branchFilter,
 }: AdminSummaryPrintDocumentProps) {
-  const printByBranch = useMemo(() => {
-    const printStaff =
-      branchFilter === "all" ? staff : staff.filter((s) => s.branch_id === branchFilter);
-
-    const groups = new Map<string, AdminStaffRow[]>();
-    for (const s of printStaff) {
-      const key = s.branch_name?.trim() || "Chưa gán chi nhánh";
-      const list = groups.get(key) ?? [];
-      list.push(s);
-      groups.set(key, list);
-    }
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a.localeCompare(b, "vi"))
-      .map(([branchName, rows]) => ({
-        branchName,
-        rows: rows.sort((x, y) => x.full_name.localeCompare(y.full_name, "vi")),
-        reported: rows.filter((r) => r.hasReport).length,
-      }));
-  }, [staff, branchFilter]);
+  const printByBranch = useMemo(
+    () => groupStaffByBranch(staff, branchFilter),
+    [staff, branchFilter]
+  );
 
   return (
     <div className="admin-print-root">
       <div className="print-header">
         <div>
           <p className="print-company">CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO</p>
-          <h1 className="print-title">TỔNG HỢP BÁO CÁO — {formatDateDisplay(selectedDate)}</h1>
+          <h1 className="print-title">TỔNG HỢP BÁO CÁO — {formatReportDate(selectedDate)}</h1>
           <p className="print-summary">
             Tổng nhân sự: {totalStaff} · Đã báo cáo: {reportedCount} · Chưa báo cáo: {missingCount} · Hoàn
             thành: {reportRate}%
