@@ -306,8 +306,8 @@ export async function getSessionUser() {
 }
 
 // 2. Fetch Dashboard Data based on role
-export async function getDashboardData(selectedDate?: string) {
-  const profile = await getSessionUser();
+export async function getDashboardData(selectedDate?: string, user?: Profile) {
+  const profile = user || await getSessionUser();
   if (!profile) return { error: "Unauthorized" };
 
   const supabase = createServiceClient();
@@ -433,8 +433,8 @@ export async function getDashboardData(selectedDate?: string) {
 }
 
 // Admin dashboard — toàn hệ thống (staff_staging + báo cáo theo ngày)
-export async function getAdminDashboardData(selectedDate?: string) {
-  const profile = await getSessionUser();
+export async function getAdminDashboardData(selectedDate?: string, user?: Profile) {
+  const profile = user || await getSessionUser();
   if (!profile || profile.role !== "admin") {
     return { error: "Unauthorized" };
   }

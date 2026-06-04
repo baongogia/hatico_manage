@@ -15,7 +15,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const dateStr = typeof resolvedParams.date === "string" ? resolvedParams.date : undefined;
   const notice = typeof resolvedParams.notice === "string" ? resolvedParams.notice : undefined;
 
-  const data = await getDashboardData(dateStr);
+  const data = await getDashboardData(dateStr, user);
   if ("error" in data) {
     console.error("Dashboard data load error:", data.error);
     redirect("/login");
@@ -26,7 +26,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   let initialAdminData = null;
   if (adminView === "summary") {
-    const adminData = await getAdminDashboardData(dateStr);
+    const adminData = await getAdminDashboardData(dateStr, user);
     if (!("error" in adminData)) {
       initialAdminData = adminData;
     }
