@@ -24,6 +24,7 @@ interface AdminSelectProps {
   className?: string;
   placeholder?: string;
   compact?: boolean;
+  micro?: boolean;
   portal?: boolean;
 }
 
@@ -34,6 +35,7 @@ export default function AdminSelect({
   className = "",
   placeholder = "Chọn...",
   compact = false,
+  micro = false,
   portal = false,
 }: AdminSelectProps) {
   const [open, setOpen] = useState(false);
@@ -85,11 +87,15 @@ export default function AdminSelect({
   const focusRing =
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:border-primary/50";
 
-  const buttonClass = compact
-    ? `h-8 w-full bg-white hover:bg-slate-50 px-1.5 rounded border border-slate-200/80 text-[11px] font-medium touch-manipulation transition-colors ${focusRing} ${
-        open ? "ring-2 ring-primary/35 border-primary/50" : ""
+  const buttonClass = micro
+    ? `h-7 w-full bg-white hover:bg-slate-50 px-1.5 rounded-md border border-slate-200/80 text-[10px] font-medium touch-manipulation transition-colors ${focusRing} ${
+        open ? "ring-1 ring-primary/35 border-primary/50" : ""
       }`
-    : `${adminControlClass} ${focusRing}`;
+    : compact
+      ? `h-8 w-full bg-white hover:bg-slate-50 px-1.5 rounded border border-slate-200/80 text-[11px] font-medium touch-manipulation transition-colors ${focusRing} ${
+          open ? "ring-2 ring-primary/35 border-primary/50" : ""
+        }`
+      : `${adminControlClass} ${focusRing}`;
 
   const menu = open ? (
     <ul

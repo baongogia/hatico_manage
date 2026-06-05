@@ -72,13 +72,15 @@ export default function DashboardClient({
 
   const mainTabOptions = isAdmin
     ? [
-        { value: "work" as const, label: "Báo cáo công việc" },
-        ...(isSales ? [{ value: "calls" as const, label: "Báo cáo cuộc gọi" }] : []),
-        { value: "summary" as const, label: "Tổng hợp" },
+        { value: "work" as const, label: "Báo cáo công việc", shortLabel: "Công việc" },
+        ...(isSales
+          ? [{ value: "calls" as const, label: "Báo cáo cuộc gọi", shortLabel: "Cuộc gọi" }]
+          : []),
+        { value: "summary" as const, label: "Tổng hợp", shortLabel: "Tổng hợp" },
       ]
     : [
-        { value: "work" as const, label: "Báo cáo công việc" },
-        { value: "calls" as const, label: "Báo cáo cuộc gọi" },
+        { value: "work" as const, label: "Báo cáo công việc", shortLabel: "Công việc" },
+        { value: "calls" as const, label: "Báo cáo cuộc gọi", shortLabel: "Cuộc gọi" },
       ];
 
   useEffect(() => {
@@ -126,10 +128,6 @@ export default function DashboardClient({
     message: "",
   });
 
-  // Mobile navigation tabs
-  const [activeEmployeeTab, setActiveEmployeeTab] = useState<
-    "today" | "history"
-  >("today");
   useEffect(() => {
     if (!notice || !NOTICE_MESSAGES[notice]) return;
 
@@ -253,6 +251,7 @@ export default function DashboardClient({
 
             {(isAdmin || isSales) && (
               <NavTabs
+                variant="glass"
                 ariaLabel="Chọn chức năng"
                 value={activeTab}
                 onChange={handleTabChange}
@@ -273,69 +272,9 @@ export default function DashboardClient({
               <CallReportPanel profile={profile} initialCalls={callReports} />
             ) : (
               <div className={`no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 ${layoutGap}`}>
-                <>
-                <NavTabs
-                  className="sm:hidden"
-                  ariaLabel="Chuyển vùng báo cáo"
-                  value={activeEmployeeTab}
-                  onChange={setActiveEmployeeTab}
-                  options={[
-                    { value: "today", label: "Báo cáo hôm nay" },
-                    { value: "history", label: "Lịch sử" },
-                  ]}
-                />
-
-                <div className={`flex flex-1 min-h-0 overflow-hidden ${layoutGap}`}>
-              <aside
-                className={`${
-                  activeEmployeeTab === "history" ? "flex" : "hidden"
-                } sm:flex flex-col w-full sm:w-80 shrink-0 min-h-0 overflow-hidden ${glassPanel}`}
-              >
-                <div className="p-3 border-b border-white/60 shrink-0">
-                  <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
-                    Lịch sử báo cáo đã nộp
-                  </h3>
-                </div>
-                <div className="flex-grow overflow-y-auto no-scrollbar p-3 gap-2 flex flex-col">
-                  {workReports.length === 0 ? (
-                    <p className="text-slate-600 text-xs italic p-2 text-center">
-                      Chưa nộp báo cáo nào
-                    </p>
-                  ) : (
-                    workReports.map((report) => (
-                      <div
-                        key={report.id}
-                        onClick={() => {
-                          setSelectedReport(report);
-                          setActiveEmployeeTab("today");
-                        }}
-                        className={`p-3 rounded-xl cursor-pointer transition-colors text-left flex items-center justify-between border ${
-                          selectedReport?.id === report.id
-                            ? "bg-white/75 border-primary/30 shadow-sm"
-                            : "bg-white/45 border-white/70 hover:bg-white/65"
-                        } backdrop-blur-sm`}
-                      >
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">
-                            {formatDateDisplay(report.report_date)}
-                          </p>
-                          <p className="text-[10px] text-slate-600 mt-0.5">
-                            {splitReportItems(report.tasks_data).tasks.length} việc đã làm
-                          </p>
-                        </div>
-                        <ReportStatusIndicator hasReport={true} />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </aside>
-
-              <main
-                className={`${
-                  activeEmployeeTab === "today" ? "flex" : "hidden sm:flex"
-                } flex-1 flex-col min-h-0 overflow-y-auto ${layoutGap}`}
-              >
-                <div className={`flex flex-col flex-grow min-h-0 ${layoutGap}`}>
+                <div className={`flex flex-1 min-h-0 max-sm:overflow-y-auto sm:overflow-hidden flex-col sm:flex-row ${layoutGap}`}>
+              <main className="flex flex-col shrink-0 sm:flex-1 sm:min-h-0 sm:overflow-y-auto order-1 sm:order-2">
+                <div className={`flex flex-col sm:flex-grow sm:min-h-0 ${layoutGap}`}>
                   {selectedReport || todayReport ? (
                     <div className={layoutGap}>
                       {(() => {
@@ -422,8 +361,46 @@ export default function DashboardClient({
                   )}
                 </div>
               </main>
+
+              <aside
+                className={`flex flex-col w-full sm:w-80 shrink-0 sm:min-h-0 sm:overflow-hidden order-2 sm:order-1 ${glassPanel}`}
+              >
+                <div className="p-3 border-b border-white/60 shrink-0">
+                  <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
+                    Lịch sử báo cáo đã nộp
+                  </h3>
                 </div>
-                </>
+                <div className="p-3 gap-2 flex flex-col sm:flex-grow sm:overflow-y-auto sm:min-h-0 no-scrollbar">
+                  {workReports.length === 0 ? (
+                    <p className="text-slate-600 text-xs italic p-2 text-center">
+                      Chưa nộp báo cáo nào
+                    </p>
+                  ) : (
+                    workReports.map((report) => (
+                      <div
+                        key={report.id}
+                        onClick={() => setSelectedReport(report)}
+                        className={`p-3 rounded-xl cursor-pointer transition-colors text-left flex items-center justify-between border ${
+                          selectedReport?.id === report.id
+                            ? "bg-white/75 border-primary/30 shadow-sm"
+                            : "bg-white/45 border-white/70 hover:bg-white/65"
+                        } backdrop-blur-sm`}
+                      >
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">
+                            {formatDateDisplay(report.report_date)}
+                          </p>
+                          <p className="text-[10px] text-slate-600 mt-0.5">
+                            {splitReportItems(report.tasks_data).tasks.length} việc đã làm
+                          </p>
+                        </div>
+                        <ReportStatusIndicator hasReport={true} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </aside>
+                </div>
               </div>
             )}
           </div>

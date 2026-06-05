@@ -5,6 +5,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 export type NavTabOption<T extends string> = {
   value: T;
   label: string;
+  shortLabel?: string;
 };
 
 interface NavTabsProps<T extends string> {
@@ -14,6 +15,7 @@ interface NavTabsProps<T extends string> {
   ariaLabel: string;
   className?: string;
   disabled?: boolean;
+  variant?: "default" | "glass";
 }
 
 export function NavTabs<T extends string>({
@@ -23,7 +25,9 @@ export function NavTabs<T extends string>({
   ariaLabel,
   className = "",
   disabled = false,
+  variant = "default",
 }: NavTabsProps<T>) {
+  const isGlass = variant === "glass";
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef(new Map<T, HTMLButtonElement>());
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -60,7 +64,9 @@ export function NavTabs<T extends string>({
       ref={tablistRef}
       role="tablist"
       aria-label={ariaLabel}
-      className={`relative flex items-center gap-4 sm:gap-5 border-b border-slate-200/70 shrink-0 ${className}`}
+      className={`relative flex items-center gap-3 sm:gap-5 border-b shrink-0 overflow-x-auto no-scrollbar ${
+        isGlass ? "border-white/25" : "border-slate-200/70"
+      } ${className}`}
     >
       {options.map((opt) => (
         <button
@@ -73,18 +79,25 @@ export function NavTabs<T extends string>({
           aria-selected={value === opt.value}
           disabled={disabled}
           onClick={() => onChange(opt.value)}
-          className={`pb-2 text-xs font-bold transition-colors cursor-pointer touch-manipulation whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${
+          className={`pb-2 text-[11px] sm:text-xs font-bold transition-colors cursor-pointer touch-manipulation whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed shrink-0 ${
             value === opt.value
-              ? "text-primary"
-              : "text-slate-500 hover:text-slate-700"
+              ? isGlass
+                ? "text-white"
+                : "text-primary"
+              : isGlass
+                ? "text-white/55 hover:text-white/80"
+                : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          {opt.label}
+          <span className="sm:hidden">{opt.shortLabel ?? opt.label}</span>
+          <span className="hidden sm:inline">{opt.label}</span>
         </button>
       ))}
       <span
         aria-hidden
-        className="pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-primary transition-[left,width] duration-300 ease-out"
+        className={`pointer-events-none absolute bottom-0 h-0.5 rounded-full transition-[left,width] duration-300 ease-out ${
+          isGlass ? "bg-white" : "bg-primary"
+        }`}
         style={{ left: indicator.left, width: indicator.width }}
       />
     </div>

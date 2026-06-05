@@ -44,10 +44,17 @@ body {
 
 /* iOS Safari: font-size < 16px on focus triggers auto-zoom */
 @media screen and (max-width: 639px) {
-  input,
-  select,
-  textarea {
+  input:not(.input-compact),
+  select:not(.input-compact),
+  textarea:not(.input-compact) {
     font-size: 16px !important;
+  }
+
+  input.input-compact,
+  select.input-compact,
+  textarea.input-compact {
+    font-size: 10px !important;
+    line-height: 1.25;
   }
 
   a,
