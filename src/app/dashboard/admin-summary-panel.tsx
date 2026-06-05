@@ -21,7 +21,12 @@ import {
   getAdminDashboardData,
   AdminDashboardData,
   AdminStaffRow,
+  getReportDetail,
+  saveDailyReport,
+  getOrCreateProfileForStaff,
+  DailyReport,
 } from "../actions";
+import { splitReportItems, TaskItem } from "@/lib/report-data";
 import { downloadAdminReportExcel } from "@/lib/admin-report-export";
 import AdminSelect, { adminControlClass } from "./admin-select";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
@@ -70,6 +75,115 @@ export function AdminSummaryPanel({
   const [staffSearch, setStaffSearch] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [printMounted, setPrintMounted] = useState(false);
+
+  // Report Form Modal states
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [modalTargetStaff, setModalTargetStaff] = useState<AdminStaffRow | null>(null);
+  const [modalInitialReport, setModalInitialReport] = useState<DailyReport | null>(null);
+  const [modalTasks, setModalTasks] = useState<TaskItem[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [modalError, setModalError] = useState("");
+
+  const handleAddReportClick = (staff: AdminStaffRow) => {
+    setModalTargetStaff(staff);
+    setModalInitialReport(null);
+    setModalTasks([{ title: "", progress: "", status: "in_progress" }]);
+    setModalError("");
+    setReportModalOpen(true);
+  };
+
+  const handleEditReportClick = async (staff: AdminStaffRow) => {
+    if (!staff.report_id) return;
+    setModalTargetStaff(staff);
+    setModalInitialReport(null);
+    setModalTasks([]);
+    setModalError("");
+    setModalLoading(true);
+    setReportModalOpen(true);
+
+    try {
+      const report = await getReportDetail(staff.report_id);
+      if (!report) {
+        throw new Error("Không thể tải chi tiết báo cáo");
+      }
+      setModalInitialReport(report);
+      const extractedTasks = splitReportItems(report.tasks_data).tasks;
+      setModalTasks(
+        extractedTasks.length > 0
+          ? extractedTasks
+          : [{ title: "", progress: "", status: "in_progress" }]
+      );
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Không thể tải báo cáo");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleSaveReportModal = async () => {
+    if (!modalTargetStaff) return;
+    const validTasks = modalTasks
+      .filter((t) => t.title.trim())
+      .map((t) => ({
+        title: t.title.trim(),
+        progress: "",
+        status: "in_progress" as const,
+      }));
+
+    if (validTasks.length === 0) {
+      setModalError("Vui lòng thêm ít nhất một đầu việc.");
+      return;
+    }
+
+    setSubmittingReport(true);
+    setModalError("");
+
+    try {
+      // 1. Get or create profile for target staff
+      let targetUserId = "";
+      if (modalInitialReport) {
+        targetUserId = modalInitialReport.user_id;
+      } else {
+        const provisionResult = await getOrCreateProfileForStaff(modalTargetStaff.id);
+        if ("error" in provisionResult || !provisionResult.profileId) {
+          throw new Error(provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên");
+        }
+        targetUserId = provisionResult.profileId;
+      }
+
+      // 2. Save report
+      const res = await saveDailyReport({
+        id: modalInitialReport?.id,
+        date: selectedDate,
+        tasksData: validTasks,
+        status: "submitted",
+        userId: targetUserId,
+      });
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      // 3. Reload admin dashboard data for selectedDate so it refreshes the UI!
+      const updatedData = await getAdminDashboardData(selectedDate);
+      if (!("error" in updatedData)) {
+        setData(updatedData);
+        onDataUpdate?.(updatedData);
+
+        const newSelectedStaff = updatedData.staff.find((s) => s.id === modalTargetStaff.id);
+        if (newSelectedStaff) {
+          setSelectedStaff(newSelectedStaff);
+        }
+      }
+
+      setReportModalOpen(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   useEffect(() => {
     setPrintMounted(true);
@@ -471,11 +585,7 @@ export function AdminSummaryPanel({
                       </div>
                       <div className="pt-3 border-t border-slate-100 flex gap-2">
                         <button
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/report?id=${selectedStaff.report_id}`,
-                            )
-                          }
+                          onClick={() => handleEditReportClick(selectedStaff)}
                           className="bg-primary text-white hover:bg-primary-hover font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer shadow-sm"
                         >
                           Cập nhật báo cáo
@@ -489,11 +599,7 @@ export function AdminSummaryPanel({
                       </p>
                       <div className="pt-3 border-t border-slate-100 flex justify-center">
                         <button
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/report?staffId=${selectedStaff.id}&date=${selectedDate}`,
-                            )
-                          }
+                          onClick={() => handleAddReportClick(selectedStaff)}
                           className="bg-primary text-white hover:bg-primary-hover font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer shadow-sm"
                         >
                           Thêm báo cáo
@@ -524,6 +630,140 @@ export function AdminSummaryPanel({
           onSelect={handleDateChange}
           title="Chọn ngày xem báo cáo"
         />
+
+        {reportModalOpen && modalTargetStaff && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 no-print animate-fade-in">
+            <div className="bg-white/95 backdrop-blur-xl border border-white/40 shadow-2xl rounded-2xl p-5 max-w-lg w-full flex flex-col max-h-[85vh] animate-slide-in">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    {modalInitialReport ? "Cập nhật báo cáo" : "Thêm báo cáo mới"}
+                  </h3>
+                  <p className="text-slate-500 text-[10px] mt-0.5 font-medium">
+                    Nhân sự: <strong className="text-slate-800">{modalTargetStaff.full_name}</strong> · {modalTargetStaff.branch_name} · {formatDateDisplay(selectedDate)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setReportModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              {modalLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-3 flex-1">
+                  <svg className="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="text-xs text-slate-500 font-medium">Đang tải chi tiết báo cáo...</span>
+                </div>
+              ) : (
+                <div className="flex-grow overflow-y-auto py-4 space-y-4 min-h-0 pr-0.5 no-scrollbar">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Danh sách đầu việc</label>
+                      <p className="text-[9px] text-slate-400">Nhấn Enter tại dòng cuối để thêm dòng mới</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {modalTasks.map((task, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-2.5 py-1.5 rounded-lg"
+                        >
+                          <span className="text-[10px] text-slate-500 font-bold w-4 shrink-0 text-center">
+                            {idx + 1}
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Nhập đầu việc..."
+                            value={task.title}
+                            onChange={(e) => {
+                              const updated = [...modalTasks];
+                              updated[idx] = { ...updated[idx], title: e.target.value };
+                              setModalTasks(updated);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const trimmed = task.title.trim();
+                                if (!trimmed) return;
+                                if (idx === modalTasks.length - 1) {
+                                  setModalTasks([...modalTasks, { title: "", progress: "", status: "in_progress" }]);
+                                }
+                              }
+                            }}
+                            className="flex-1 bg-transparent text-slate-900 text-xs sm:text-xs focus:outline-none placeholder:text-slate-400 min-w-0"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (modalTasks.length === 1) {
+                                setModalTasks([{ title: "", progress: "", status: "in_progress" }]);
+                                return;
+                              }
+                              setModalTasks(modalTasks.filter((_, i) => i !== idx));
+                            }}
+                            className="text-slate-400 hover:text-rose-500 p-0.5 shrink-0 transition-colors cursor-pointer"
+                            aria-label="Xóa đầu việc"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setModalTasks([...modalTasks, { title: "", progress: "", status: "in_progress" }])}
+                      className="text-primary hover:text-primary-hover font-bold transition-colors flex items-center gap-1.5 cursor-pointer py-1.5 text-xs"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Thêm đầu việc
+                    </button>
+                  </div>
+                  
+                  {modalError && (
+                    <div className="bg-red-50 text-red-700 p-2.5 rounded-lg text-xs font-semibold border border-red-200">
+                      {modalError}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              {!modalLoading && (
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setReportModalOpen(false)}
+                    className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveReportModal}
+                    disabled={submittingReport}
+                    className="bg-primary text-white hover:bg-primary-hover disabled:bg-slate-200 disabled:text-slate-400 font-bold px-5 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    {submittingReport ? "Đang lưu..." : "Lưu báo cáo"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {printMounted &&
