@@ -11,6 +11,8 @@ import PageBackground from "../page-background";
 interface ReportFormProps {
   user: Profile;
   initialReport: DailyReport | null;
+  initialDate?: string;
+  isAdmin?: boolean;
 }
 
 const defaultTask: TaskItem = {
@@ -19,11 +21,16 @@ const defaultTask: TaskItem = {
   status: "in_progress",
 };
 
-export default function ReportForm({ user, initialReport }: ReportFormProps) {
+export default function ReportForm({
+  user,
+  initialReport,
+  initialDate,
+  isAdmin,
+}: ReportFormProps) {
   const router = useRouter();
 
   const [reportDate] = useState(
-    initialReport?.report_date || new Date().toISOString().split("T")[0]
+    initialReport?.report_date || initialDate || new Date().toISOString().split("T")[0]
   );
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const workTasks = splitReportItems(initialReport?.tasks_data).tasks;
@@ -105,13 +112,18 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
         date: reportDate,
         tasksData: validTasks,
         status: "submitted",
+        userId: user.id,
       });
 
       if (res.error) {
         throw new Error(res.error);
       }
 
-      router.replace("/dashboard?notice=submitted");
+      if (isAdmin) {
+        router.replace(`/dashboard?view=summary&date=${reportDate}&notice=submitted`);
+      } else {
+        router.replace("/dashboard?notice=submitted");
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Không thể lưu báo cáo, vui lòng thử lại.");
     } finally {

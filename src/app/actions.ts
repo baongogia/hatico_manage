@@ -693,9 +693,19 @@ export async function saveDailyReport(params: {
   date: string;
   tasksData: TaskItem[];
   status: "draft" | "submitted";
+  userId?: string;
 }) {
   const profile = await getSessionUser();
   if (!profile) return { error: "Unauthorized" };
+
+  // Check permission: if saving report for someone else, user must be admin
+  let targetUserId = profile.id;
+  if (params.userId && params.userId !== profile.id) {
+    if (profile.role !== "admin") {
+      return { error: "Unauthorized: Only admin can save reports for other users." };
+    }
+    targetUserId = params.userId;
+  }
 
   const supabase = createServiceClient();
   const reportId = params.id || crypto.randomUUID();
@@ -707,9 +717,9 @@ export async function saveDailyReport(params: {
     const { data: existingReport } = await supabase
       .from("daily_reports")
       .select("id, tasks_data")
-      .eq("user_id", profile.id)
+      .eq("user_id", targetUserId)
       .eq("report_date", params.date)
-      .single();
+      .maybeSingle();
     if (existingReport) {
       existingId = existingReport.id;
       existingCalls = splitReportItems(
@@ -719,10 +729,13 @@ export async function saveDailyReport(params: {
   } else {
     const { data: existingReport } = await supabase
       .from("daily_reports")
-      .select("tasks_data")
+      .select("tasks_data, user_id")
       .eq("id", existingId)
       .single();
     if (existingReport) {
+      if (existingReport.user_id !== profile.id && profile.role !== "admin") {
+        return { error: "Unauthorized: You do not own this report." };
+      }
       existingCalls = splitReportItems(
         (existingReport.tasks_data || []) as ReportDataItem[]
       ).calls;
@@ -760,7 +773,7 @@ export async function saveDailyReport(params: {
       .from("daily_reports")
       .insert({
         id: reportId,
-        user_id: profile.id,
+        user_id: targetUserId,
         report_date: params.date,
         tasks_data: mergedTasksData,
         status: params.status,
@@ -775,6 +788,201 @@ export async function saveDailyReport(params: {
       return { error: error.message };
     }
     return { success: true, report: data };
+  }
+}
+
+// 7. Fetch a profile by ID (with department & branch)
+export async function getProfileById(profileId: string) {
+  const supabase = createServiceClient();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select(`
+      id,
+      full_name,
+      role,
+      department_id,
+      departments (
+        id,
+        name,
+        branch_id,
+        branches (
+          id,
+          name,
+          code
+        )
+      )
+    `)
+    .eq("id", profileId)
+    .single();
+
+  if (error || !profile) {
+    console.error("Error fetching profile by ID:", error);
+    return null;
+  }
+
+  const deptData = profile.departments as unknown as {
+    id: string;
+    name: string;
+    branch_id: string;
+    branches: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
+  } | null;
+
+  const mappedProfile: Profile = {
+    id: profile.id,
+    full_name: profile.full_name,
+    role: profile.role as Profile["role"],
+    department_id: profile.department_id,
+    department: deptData ? {
+      id: deptData.id,
+      branch_id: deptData.branch_id,
+      name: deptData.name,
+      branch: deptData.branches ? {
+        id: deptData.branches.id,
+        name: deptData.branches.name,
+        code: deptData.branches.code
+      } : undefined
+    } : undefined
+  };
+
+  return mappedProfile;
+}
+
+// 8. Fetch a report by user ID and report date
+export async function getReportByUserAndDate(userId: string, date: string) {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("report_date", date)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching report by user and date:", error);
+    return null;
+  }
+  return data as DailyReport | null;
+}
+
+// 9. Auto-provision profile for staff_staging member who hasn't logged in yet
+export async function getOrCreateProfileForStaff(staffId: number) {
+  const supabase = createServiceClient();
+
+  const { data: staff, error: staffErr } = await supabase
+    .from("staff_staging")
+    .select("id, full_name, position, department, branch_id")
+    .eq("id", staffId)
+    .single();
+
+  if (staffErr || !staff) {
+    return { error: "Không tìm thấy nhân viên trong dữ liệu staging" };
+  }
+
+  // Check if profile exists by full name
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("full_name", staff.full_name)
+    .maybeSingle();
+
+  if (existingProfile) {
+    return { profileId: existingProfile.id };
+  }
+
+  if (!staff.branch_id) {
+    return { error: "Nhân viên chưa được gán chi nhánh trong hệ thống" };
+  }
+
+  const TECH_POSITIONS = new Set(["Kỹ thuật", "NVKT", "Lắp mooc", "GĐKV"]);
+  const deptType = TECH_POSITIONS.has(staff.position || "") ? "Kỹ thuật" : "Kinh doanh";
+
+  let { data: dept } = await supabase
+    .from("departments")
+    .select("id")
+    .eq("branch_id", staff.branch_id)
+    .eq("name", deptType)
+    .maybeSingle();
+
+  if (!dept) {
+    const { data: newDept, error: deptErr } = await supabase
+      .from("departments")
+      .insert({ branch_id: staff.branch_id, name: deptType })
+      .select("id")
+      .single();
+
+    if (deptErr || !newDept) {
+      console.error("Error creating department:", deptErr);
+      return { error: "Không thể tạo bộ phận cho chi nhánh" };
+    }
+    dept = newDept;
+  }
+
+  const role = mapStaffRole(staff.position);
+  const email = `staff.${staff.id}@hatico.internal`;
+
+  let authUser = null;
+
+  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+    email,
+    password: "Password123!",
+    email_confirm: true,
+    user_metadata: { full_name: staff.full_name },
+  });
+
+  if (created && created.user) {
+    authUser = created.user;
+  } else if (createErr && createErr.status === 422) {
+    const { data: authList, error: listErr } = await supabase.auth.admin.listUsers({
+      perPage: 1000
+    });
+    if (!listErr && authList) {
+      authUser = authList.users.find((u) => u.email === email);
+    }
+  }
+
+  if (!authUser) {
+    console.error("Error creating or retrieving auth user:", createErr);
+    return { error: "Không thể tạo tài khoản xác thực cho nhân viên" };
+  }
+
+  const { data: pCheck } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", authUser.id)
+    .maybeSingle();
+
+  if (pCheck) {
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({
+        full_name: staff.full_name,
+        role,
+        department_id: dept.id,
+      })
+      .eq("id", authUser.id);
+
+    if (updateErr) {
+      console.error("Error updating profile:", updateErr);
+      return { error: "Không thể cập nhật hồ sơ nhân viên" };
+    }
+    return { profileId: authUser.id };
+  } else {
+    const { error: insertErr } = await supabase.from("profiles").insert({
+      id: authUser.id,
+      full_name: staff.full_name,
+      role,
+      department_id: dept.id,
+    });
+
+    if (insertErr) {
+      console.error("Error inserting profile:", insertErr);
+      return { error: "Không thể tạo hồ sơ nhân viên" };
+    }
+    return { profileId: authUser.id };
   }
 }
 
