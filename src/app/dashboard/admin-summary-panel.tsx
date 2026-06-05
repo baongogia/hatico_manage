@@ -21,7 +21,7 @@ import { downloadAdminReportExcel } from "@/lib/admin-report-export";
 import AdminSelect, { adminControlClass } from "./admin-select";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
 import { ReportStatusIndicator } from "./report-status-indicator";
-import { SlidingSegmentedTabs } from "./sliding-segmented-tabs";
+import { NavTabs } from "./nav-tabs";
 
 const STATUS_TABS = [
   { value: "all", label: "Tất cả" },
@@ -160,9 +160,8 @@ export function AdminSummaryPanel({ initialData, onDataUpdate }: AdminSummaryPan
             ]}
           />
 
-          <SlidingSegmentedTabs
+          <NavTabs
             className="sm:col-span-2"
-            variant="toolbar"
             ariaLabel="Lọc trạng thái báo cáo"
             value={statusFilter}
             onChange={setStatusFilter}

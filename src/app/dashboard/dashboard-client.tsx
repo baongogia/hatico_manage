@@ -17,10 +17,11 @@ import { hasWorkTasks, isSalesDepartment, splitReportItems } from "@/lib/report-
 import { CallReportPanel } from "./call-report-panel";
 import LiveClock from "./live-clock";
 import PageBackground from "./page-background";
-import { AdminViewTabs, type AdminView } from "./admin-view-tabs";
 import { AdminSummarySkeleton } from "./admin-summary-skeleton";
+import { NavTabs } from "./nav-tabs";
 import { ReportStatusIndicator } from "./report-status-indicator";
-import { SlidingSegmentedTabs } from "./sliding-segmented-tabs";
+
+type DashboardTab = "work" | "calls" | "summary";
 
 const AdminSummaryPanel = dynamic(
   () => import("./admin-summary-panel").then((m) => m.AdminSummaryPanel),
@@ -36,7 +37,7 @@ interface DashboardClientProps {
     employees?: Profile[];
     date?: string;
   };
-  initialAdminView?: AdminView;
+  initialTab?: DashboardTab;
   initialAdminData?: AdminDashboardData | null;
   notice?: string;
 }
@@ -50,13 +51,13 @@ const NOTICE_MESSAGES: Record<string, { title: string; message: string }> = {
 
 export default function DashboardClient({
   initialData,
-  initialAdminView = "personal",
+  initialTab = "work",
   initialAdminData = null,
   notice,
 }: DashboardClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [adminView, setAdminView] = useState<AdminView>(initialAdminView);
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [adminData, setAdminData] = useState<AdminDashboardData | null>(initialAdminData);
   const [adminLoading, startAdminLoad] = useTransition();
 
@@ -64,10 +65,21 @@ export default function DashboardClient({
   const isAdmin = role === "admin";
   const isSales = isSalesDepartment(profile.department?.name);
 
-  const syncAdminUrl = useCallback((view: AdminView) => {
-    const url = view === "summary" ? "/dashboard?view=summary" : "/dashboard";
+  const syncTabUrl = useCallback((tab: DashboardTab) => {
+    const url = tab === "summary" ? "/dashboard?view=summary" : "/dashboard";
     window.history.replaceState(null, "", url);
   }, []);
+
+  const mainTabOptions = isAdmin
+    ? [
+        { value: "work" as const, label: "Báo cáo công việc" },
+        ...(isSales ? [{ value: "calls" as const, label: "Báo cáo cuộc gọi" }] : []),
+        { value: "summary" as const, label: "Tổng hợp" },
+      ]
+    : [
+        { value: "work" as const, label: "Báo cáo công việc" },
+        { value: "calls" as const, label: "Báo cáo cuộc gọi" },
+      ];
 
   useEffect(() => {
     if (!isAdmin || adminData) return;
@@ -84,25 +96,19 @@ export default function DashboardClient({
     return () => window.clearTimeout(t);
   }, [isAdmin, adminData]);
 
-  const handleAdminViewChange = (view: AdminView) => {
-    if (view === "personal") {
-      setAdminView("personal");
-      syncAdminUrl("personal");
+  const handleTabChange = (tab: DashboardTab) => {
+    if (tab === "summary") {
+      setActiveTab("summary");
+      syncTabUrl("summary");
+      if (adminData) return;
+      startAdminLoad(async () => {
+        const result = await getAdminDashboardData();
+        if (!("error" in result)) setAdminData(result);
+      });
       return;
     }
-    if (adminData) {
-      setAdminView("summary");
-      syncAdminUrl("summary");
-      return;
-    }
-    startAdminLoad(async () => {
-      const result = await getAdminDashboardData();
-      if (!("error" in result)) {
-        setAdminData(result);
-        setAdminView("summary");
-        syncAdminUrl("summary");
-      }
-    });
+    setActiveTab(tab);
+    syncTabUrl(tab);
   };
 
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(
@@ -124,7 +130,6 @@ export default function DashboardClient({
   const [activeEmployeeTab, setActiveEmployeeTab] = useState<
     "today" | "history"
   >("today");
-  const [activeMainTab, setActiveMainTab] = useState<"work" | "calls">("work");
   useEffect(() => {
     if (!notice || !NOTICE_MESSAGES[notice]) return;
 
@@ -212,26 +217,6 @@ export default function DashboardClient({
           </svg>
         </button>
 
-        {isAdmin && adminView === "personal" && (
-          <button
-            type="button"
-            onClick={() => handleAdminViewChange("summary")}
-            disabled={adminLoading}
-            className="hidden sm:inline-flex items-center gap-1 text-primary hover:text-primary-hover text-xs font-bold transition-colors cursor-pointer bg-white/60 border border-white/80 px-2.5 py-1.5 rounded-lg backdrop-blur-sm touch-manipulation disabled:opacity-60"
-          >
-            Tổng hợp
-          </button>
-        )}
-        {isAdmin && adminView === "summary" && (
-          <button
-            type="button"
-            onClick={() => handleAdminViewChange("personal")}
-            className="hidden sm:inline-flex text-primary hover:text-primary-hover text-xs font-bold cursor-pointer bg-white/60 border border-white/80 px-2.5 py-1.5 rounded-lg backdrop-blur-sm touch-manipulation"
-          >
-            Báo cáo của tôi
-          </button>
-        )}
-
         <button
           onClick={handleLogout}
           className="flex items-center gap-1 text-slate-700 hover:text-rose-600 text-xs font-bold transition-colors cursor-pointer"
@@ -266,15 +251,17 @@ export default function DashboardClient({
           >
             {header}
 
-            {isAdmin && (
-              <AdminViewTabs
-                view={adminView}
-                onViewChange={handleAdminViewChange}
-                pending={adminLoading}
+            {(isAdmin || isSales) && (
+              <NavTabs
+                ariaLabel="Chọn chức năng"
+                value={activeTab}
+                onChange={handleTabChange}
+                disabled={adminLoading}
+                options={mainTabOptions}
               />
             )}
 
-            {adminView === "summary" ? (
+            {activeTab === "summary" ? (
               adminLoading && !adminData ? (
                 <AdminSummarySkeleton />
               ) : adminData ? (
@@ -282,35 +269,19 @@ export default function DashboardClient({
               ) : (
                 <AdminSummarySkeleton />
               )
+            ) : activeTab === "calls" ? (
+              <CallReportPanel profile={profile} initialCalls={callReports} />
             ) : (
               <div className={`no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 ${layoutGap}`}>
-                {isSales && (
-                  <SlidingSegmentedTabs
-                    className="shrink-0"
-                    variant="glass"
-                    ariaLabel="Chọn loại báo cáo"
-                    value={activeMainTab}
-                    onChange={setActiveMainTab}
-                    options={[
-                      { value: "work", label: "Báo cáo công việc" },
-                      { value: "calls", label: "Báo cáo cuộc gọi" },
-                    ]}
-                  />
-                )}
-
-                {isSales && activeMainTab === "calls" ? (
-                  <CallReportPanel profile={profile} initialCalls={callReports} />
-                ) : (
                 <>
-                <SlidingSegmentedTabs
-                  className="sm:hidden shrink-0"
-                  variant="glass"
+                <NavTabs
+                  className="sm:hidden"
                   ariaLabel="Chuyển vùng báo cáo"
                   value={activeEmployeeTab}
                   onChange={setActiveEmployeeTab}
                   options={[
                     { value: "today", label: "Báo cáo hôm nay" },
-                    { value: "history", label: "Lịch sử báo cáo" },
+                    { value: "history", label: "Lịch sử" },
                   ]}
                 />
 
@@ -453,7 +424,6 @@ export default function DashboardClient({
               </main>
                 </div>
                 </>
-                )}
               </div>
             )}
           </div>

@@ -21,11 +21,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const adminView =
-    data.role === "admin" && resolvedParams.view === "summary" ? "summary" : "personal";
+  const initialTab =
+    data.role === "admin" && resolvedParams.view === "summary" ? "summary" : "work";
 
   let initialAdminData = null;
-  if (adminView === "summary") {
+  if (initialTab === "summary") {
     const adminData = await getAdminDashboardData(dateStr, user);
     if (!("error" in adminData)) {
       initialAdminData = adminData;
@@ -35,7 +35,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   return (
     <DashboardClient
       initialData={data}
-      initialAdminView={adminView}
+      initialTab={initialTab}
       initialAdminData={initialAdminData}
       notice={notice}
     />
