@@ -4,8 +4,17 @@ import { useState, useTransition, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { logoutUser, getAdminDashboardData, DailyReport, Profile, AdminDashboardData } from "../actions";
+import {
+  logoutUser,
+  getAdminDashboardData,
+  DailyReport,
+  Profile,
+  AdminDashboardData,
+  CallReportRow,
+} from "../actions";
 import { glassPanel, layoutGap, layoutPad } from "@/lib/glass-styles";
+import { hasWorkTasks, isSalesDepartment, splitReportItems } from "@/lib/report-data";
+import { CallReportPanel } from "./call-report-panel";
 import LiveClock from "./live-clock";
 import PageBackground from "./page-background";
 import { AdminViewTabs, type AdminView } from "./admin-view-tabs";
@@ -23,6 +32,7 @@ interface DashboardClientProps {
     role: string;
     profile: Profile;
     reports?: DailyReport[];
+    callReports?: CallReportRow[];
     employees?: Profile[];
     date?: string;
   };
@@ -50,8 +60,9 @@ export default function DashboardClient({
   const [adminData, setAdminData] = useState<AdminDashboardData | null>(initialAdminData);
   const [adminLoading, startAdminLoad] = useTransition();
 
-  const { role, profile, reports: initialReports = [] } = initialData;
+  const { role, profile, reports: initialReports = [], callReports = [] } = initialData;
   const isAdmin = role === "admin";
+  const isSales = isSalesDepartment(profile.department?.name);
 
   const syncAdminUrl = useCallback((view: AdminView) => {
     const url = view === "summary" ? "/dashboard?view=summary" : "/dashboard";
@@ -113,6 +124,7 @@ export default function DashboardClient({
   const [activeEmployeeTab, setActiveEmployeeTab] = useState<
     "today" | "history"
   >("today");
+  const [activeMainTab, setActiveMainTab] = useState<"work" | "calls">("work");
   useEffect(() => {
     if (!notice || !NOTICE_MESSAGES[notice]) return;
 
@@ -146,9 +158,10 @@ export default function DashboardClient({
   const canUsePersonalReports = role === "employee" || role === "admin";
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayReport = canUsePersonalReports
-    ? initialReports.find((r) => r.report_date === todayStr)
-    : null;
+  const workReports = canUsePersonalReports
+    ? initialReports.filter((r) => hasWorkTasks(r.tasks_data))
+    : [];
+  const todayReport = workReports.find((r) => r.report_date === todayStr) ?? null;
 
   const header = (
     <header
@@ -270,7 +283,25 @@ export default function DashboardClient({
                 <AdminSummarySkeleton />
               )
             ) : (
-              <div className="no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 max-sm:gap-3">
+              <div className={`no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 ${layoutGap}`}>
+                {isSales && (
+                  <SlidingSegmentedTabs
+                    className="shrink-0"
+                    variant="glass"
+                    ariaLabel="Chọn loại báo cáo"
+                    value={activeMainTab}
+                    onChange={setActiveMainTab}
+                    options={[
+                      { value: "work", label: "Báo cáo công việc" },
+                      { value: "calls", label: "Báo cáo cuộc gọi" },
+                    ]}
+                  />
+                )}
+
+                {isSales && activeMainTab === "calls" ? (
+                  <CallReportPanel profile={profile} initialCalls={callReports} />
+                ) : (
+                <>
                 <SlidingSegmentedTabs
                   className="sm:hidden shrink-0"
                   variant="glass"
@@ -295,12 +326,12 @@ export default function DashboardClient({
                   </h3>
                 </div>
                 <div className="flex-grow overflow-y-auto no-scrollbar p-3 gap-2 flex flex-col">
-                  {initialReports.length === 0 ? (
+                  {workReports.length === 0 ? (
                     <p className="text-slate-600 text-xs italic p-2 text-center">
                       Chưa nộp báo cáo nào
                     </p>
                   ) : (
-                    initialReports.map((report) => (
+                    workReports.map((report) => (
                       <div
                         key={report.id}
                         onClick={() => {
@@ -318,7 +349,7 @@ export default function DashboardClient({
                             {formatDateDisplay(report.report_date)}
                           </p>
                           <p className="text-[10px] text-slate-600 mt-0.5">
-                            {report.tasks_data?.length || 0} việc đã làm
+                            {splitReportItems(report.tasks_data).tasks.length} việc đã làm
                           </p>
                         </div>
                         <ReportStatusIndicator hasReport={true} />
@@ -364,7 +395,7 @@ export default function DashboardClient({
                                 Đầu việc:
                               </h4>
                               <div className="flex flex-wrap gap-1.5">
-                                {displayReport.tasks_data.map((task, idx) => (
+                                {splitReportItems(displayReport.tasks_data).tasks.map((task, idx) => (
                                   <span
                                     key={idx}
                                     className="bg-white/70 border border-slate-200/80 text-slate-900 text-xs font-semibold px-3 py-1.5 rounded-lg"
@@ -421,6 +452,8 @@ export default function DashboardClient({
                 </div>
               </main>
                 </div>
+                </>
+                )}
               </div>
             )}
           </div>

@@ -13,7 +13,7 @@ export type SegmentedTabOption<T extends string> = {
 type Variant = "glass" | "toolbar";
 
 function getPillLayout(variant: Variant, count: number) {
-  const inset = variant === "glass" ? "0.625rem" : "0.375rem";
+  const inset = "0.25rem";
   const totalGaps = count > 1 ? `${(count - 1) * 0.375}rem` : "0rem";
   const width = `calc((100% - ${inset} - ${inset} - ${totalGaps}) / ${count})`;
   return { inset, width };
@@ -41,14 +41,14 @@ export function SlidingSegmentedTabs<T extends string>({
 
   const trackClass =
     variant === "glass"
-      ? `${glassPanel} relative flex gap-1.5 p-2.5`
-      : "relative flex h-10 gap-1.5 p-1.5 bg-slate-100/90 rounded-lg border border-slate-200/80";
+      ? `${glassPanel} relative flex gap-1.5 p-1`
+      : "relative flex gap-1.5 p-1 bg-slate-100/90 rounded-lg border border-slate-200/80";
 
-  const pillInset = variant === "glass" ? "top-2.5 bottom-2.5" : "top-1.5 bottom-1.5";
+  const pillInset = "top-1 bottom-1";
   const buttonClass =
     variant === "glass"
-      ? "relative z-10 flex-1 py-2.5 text-xs font-bold transition-colors duration-200 cursor-pointer touch-manipulation"
-      : "relative z-10 flex-1 flex items-center justify-center text-[11px] font-bold transition-colors duration-200 cursor-pointer touch-manipulation min-w-0";
+      ? "relative z-10 flex-1 py-2 text-xs font-bold transition-colors duration-200 cursor-pointer touch-manipulation"
+      : "relative z-10 flex-1 flex items-center justify-center py-2 text-[11px] font-bold transition-colors duration-200 cursor-pointer touch-manipulation min-w-0";
 
   return (
     <div className={`${trackClass} ${className}`} role="tablist" aria-label={ariaLabel}>

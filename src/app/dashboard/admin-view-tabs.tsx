@@ -24,12 +24,12 @@ export function AdminViewTabs({ view, onViewChange, pending, className = "" }: A
 
   return (
     <nav
-      className={`${glassPanel} no-print relative flex gap-1.5 p-2.5 shrink-0 touch-manipulation ${pending ? "opacity-90" : ""} ${className}`}
+      className={`${glassPanel} no-print relative flex gap-1.5 p-1 shrink-0 touch-manipulation ${pending ? "opacity-90" : ""} ${className}`}
       aria-label="Chuyển chế độ admin"
     >
       <div
         aria-hidden
-        className="absolute top-2.5 bottom-2.5 left-2.5 w-[calc((100%-1.375rem)/2)] rounded-lg bg-primary shadow-[0_2px_8px_rgba(15,45,89,0.25)] transition-transform duration-300 motion-reduce:transition-none"
+        className="absolute top-1 bottom-1 left-1 w-[calc((100%-0.875rem)/2)] rounded-lg bg-primary shadow-[0_2px_8px_rgba(15,45,89,0.25)] transition-transform duration-300 motion-reduce:transition-none"
         style={{
           transitionTimingFunction: SLIDE_EASE,
           transform: activeIndex === 0 ? "translateX(0)" : `translateX(calc(100% + ${TAB_GAP}))`,

@@ -2,6 +2,16 @@
 
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/service";
+import {
+  type TaskItem,
+  type CallReportEntry,
+  type CallReportRow,
+  type ReportDataItem,
+  type CallReportPeriod,
+  splitReportItems,
+  getPeriodStartDate,
+  isSalesDepartment,
+} from "@/lib/report-data";
 
 // Interface definitions
 export interface Branch {
@@ -67,17 +77,19 @@ export interface AdminDashboardData {
   staff: AdminStaffRow[];
 }
 
-export interface TaskItem {
-  title: string;
-  progress: string;
-  status: "completed" | "in_progress" | "pending";
-}
+export type {
+  TaskItem,
+  CallReportEntry,
+  CallReportRow,
+  ReportDataItem,
+  CallReportPeriod,
+} from "@/lib/report-data";
 
 export interface DailyReport {
   id: string;
   user_id: string;
   report_date: string;
-  tasks_data: TaskItem[];
+  tasks_data: ReportDataItem[];
   status: "draft" | "submitted" | "approved";
   approved_by?: string;
   feedback?: string;
@@ -322,10 +334,16 @@ export async function getDashboardData(selectedDate?: string, user?: Profile) {
 
     if (error) console.error("Error fetching personal reports:", error);
 
+    const dailyReports = (reports || []) as DailyReport[];
+    const callReports = isSalesDepartment(profile.department?.name)
+      ? extractCallRows(dailyReports)
+      : [];
+
     return {
       role: profile.role,
       profile,
-      reports: (reports || []) as DailyReport[],
+      reports: dailyReports,
+      callReports,
     };
   } else if (profile.role === "department_manager") {
     // Department managers see reports from their department
@@ -464,8 +482,8 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
   const staffRows: AdminStaffRow[] = (staff || []).map((s) => {
     const profileId = profileByName.get(s.full_name.trim().toLowerCase());
     const report = profileId ? reportByUserId.get(profileId) : undefined;
-    const tasks = (report?.tasks_data || [])
-      .map((t: TaskItem) => t.title)
+    const tasks = splitReportItems(report?.tasks_data || []).tasks
+      .map((t) => t.title)
       .filter(Boolean);
 
     return {
@@ -475,9 +493,9 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
       department: s.department,
       branch_id: s.branch_id,
       branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
-      hasReport: !!report,
+      hasReport: tasks.length > 0,
       tasks,
-      report_id: report?.id,
+      report_id: tasks.length > 0 ? report?.id : undefined,
     };
   });
 
@@ -511,7 +529,148 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
   } as AdminDashboardData;
 }
 
-// 3. Fetch a single report by ID
+function extractCallRows(reports: DailyReport[], period: CallReportPeriod = "all"): CallReportRow[] {
+  const startDate = getPeriodStartDate(period);
+  const rows: CallReportRow[] = [];
+
+  for (const report of reports) {
+    if (startDate && report.report_date < startDate) continue;
+    const { calls } = splitReportItems(report.tasks_data || []);
+    for (const call of calls) {
+      rows.push({
+        ...call,
+        report_date: report.report_date,
+        report_id: report.id,
+      });
+    }
+  }
+
+  return rows.sort((a, b) => b.report_date.localeCompare(a.report_date));
+}
+
+// 3. Fetch call reports for sales users
+export async function getCallReports(period: CallReportPeriod = "all") {
+  const profile = await getSessionUser();
+  if (!profile || !isSalesDepartment(profile.department?.name)) {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const startDate = getPeriodStartDate(period);
+
+  let query = supabase
+    .from("daily_reports")
+    .select("*")
+    .eq("user_id", profile.id)
+    .order("report_date", { ascending: false });
+
+  if (startDate) {
+    query = query.gte("report_date", startDate);
+  }
+
+  const { data: reports, error } = await query;
+  if (error) {
+    console.error("Error fetching call reports:", error);
+    return { error: error.message };
+  }
+
+  return {
+    calls: extractCallRows((reports || []) as DailyReport[], period),
+    profile,
+  };
+}
+
+// 4. Save call report entries for a given date
+export async function saveCallReports(params: {
+  date: string;
+  calls: Omit<CallReportEntry, "type">[];
+}) {
+  const profile = await getSessionUser();
+  if (!profile || !isSalesDepartment(profile.department?.name)) {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const now = new Date().toISOString();
+
+  const callEntries: CallReportEntry[] = params.calls
+    .filter((c) => c.customer_name.trim())
+    .map((c) => ({
+      type: "call" as const,
+      customer_name: c.customer_name.trim(),
+      phone: c.phone.trim(),
+      province: c.province.trim(),
+      trailer_type: c.trailer_type.trim(),
+      price_quote: c.price_quote.trim(),
+      post_call_notes: c.post_call_notes.trim(),
+    }));
+
+  const { data: existingReport } = await supabase
+    .from("daily_reports")
+    .select("*")
+    .eq("user_id", profile.id)
+    .eq("report_date", params.date)
+    .maybeSingle();
+
+  const { tasks: existingTasks } = splitReportItems(
+    (existingReport?.tasks_data || []) as ReportDataItem[]
+  );
+  const mergedData: ReportDataItem[] = [...existingTasks, ...callEntries];
+
+  if (!existingReport && callEntries.length === 0) {
+    return { success: true };
+  }
+
+  if (existingReport) {
+    const { data, error } = await supabase
+      .from("daily_reports")
+      .update({
+        tasks_data: mergedData,
+        updated_at: now,
+      })
+      .eq("id", existingReport.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating call reports:", error);
+      return { error: error.message };
+    }
+    return { success: true, report: data };
+  }
+
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .insert({
+      id: crypto.randomUUID(),
+      user_id: profile.id,
+      report_date: params.date,
+      tasks_data: mergedData,
+      status: "submitted",
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting call reports:", error);
+    return { error: error.message };
+  }
+  return { success: true, report: data };
+}
+
+export async function saveCallReportsBatch(
+  entries: { date: string; calls: Omit<CallReportEntry, "type">[] }[]
+) {
+  for (const entry of entries) {
+    const result = await saveCallReports(entry);
+    if (result.error) return { error: result.error };
+  }
+  return { success: true };
+}
+
+// 5. Fetch a single report by ID
 export async function getReportDetail(reportId: string) {
   const supabase = createServiceClient();
   const { data: report, error } = await supabase
@@ -528,7 +687,7 @@ export async function getReportDetail(reportId: string) {
   return report as DailyReport;
 }
 
-// 4. Save (create or update) a daily report
+// 6. Save (create or update) a daily report
 export async function saveDailyReport(params: {
   id?: string;
   date: string;
@@ -543,17 +702,37 @@ export async function saveDailyReport(params: {
 
   // Check if a report already exists for this user and date (if no ID was passed)
   let existingId = params.id;
+  let existingCalls: CallReportEntry[] = [];
   if (!existingId) {
     const { data: existingReport } = await supabase
       .from("daily_reports")
-      .select("id")
+      .select("id, tasks_data")
       .eq("user_id", profile.id)
       .eq("report_date", params.date)
       .single();
     if (existingReport) {
       existingId = existingReport.id;
+      existingCalls = splitReportItems(
+        (existingReport.tasks_data || []) as ReportDataItem[]
+      ).calls;
+    }
+  } else {
+    const { data: existingReport } = await supabase
+      .from("daily_reports")
+      .select("tasks_data")
+      .eq("id", existingId)
+      .single();
+    if (existingReport) {
+      existingCalls = splitReportItems(
+        (existingReport.tasks_data || []) as ReportDataItem[]
+      ).calls;
     }
   }
+
+  const mergedTasksData: ReportDataItem[] = [
+    ...params.tasksData.map((t) => ({ ...t, type: "task" as const })),
+    ...existingCalls,
+  ];
 
   const now = new Date().toISOString();
 
@@ -562,7 +741,7 @@ export async function saveDailyReport(params: {
     const { data, error } = await supabase
       .from("daily_reports")
       .update({
-        tasks_data: params.tasksData,
+        tasks_data: mergedTasksData,
         status: params.status,
         updated_at: now
       })
@@ -583,7 +762,7 @@ export async function saveDailyReport(params: {
         id: reportId,
         user_id: profile.id,
         report_date: params.date,
-        tasks_data: params.tasksData,
+        tasks_data: mergedTasksData,
         status: params.status,
         created_at: now,
         updated_at: now

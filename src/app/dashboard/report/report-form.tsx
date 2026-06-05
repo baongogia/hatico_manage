@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { glassPanel } from "@/lib/glass-styles";
 import { saveDailyReport, Profile, DailyReport, TaskItem } from "../../actions";
+import { splitReportItems } from "@/lib/report-data";
 import PageBackground from "../page-background";
 
 interface ReportFormProps {
@@ -24,11 +25,10 @@ export default function ReportForm({ user, initialReport }: ReportFormProps) {
   const [reportDate] = useState(
     initialReport?.report_date || new Date().toISOString().split("T")[0]
   );
-  const [tasks, setTasks] = useState<TaskItem[]>(
-    initialReport?.tasks_data?.length
-      ? initialReport.tasks_data
-      : [{ ...defaultTask }]
-  );
+  const [tasks, setTasks] = useState<TaskItem[]>(() => {
+    const workTasks = splitReportItems(initialReport?.tasks_data).tasks;
+    return workTasks.length > 0 ? workTasks : [{ ...defaultTask }];
+  });
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");

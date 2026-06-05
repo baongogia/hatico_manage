@@ -14,7 +14,7 @@ export function ReportStatusIndicator({
       <span
         title="Đã báo cáo"
         aria-label="Đã báo cáo"
-        className={`inline-flex items-center justify-center ${box} rounded-full bg-emerald-500 shadow-sm ring-2 ring-white shrink-0`}
+        className={`inline-flex items-center justify-center ${box} rounded-full bg-primary shadow-sm ring-2 ring-white shrink-0`}
       >
         <svg className={`${icon} text-white`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
