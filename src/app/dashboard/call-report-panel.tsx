@@ -29,6 +29,7 @@ const TRAILER_TYPE_OPTIONS = [
   { value: "Téc", label: "Téc" },
   { value: "Siêu trường", label: "Siêu trường" },
   { value: "Lửng", label: "Lửng" },
+  { value: "Xương", label: "Xương" },
 ];
 
 const cellInput =
@@ -82,16 +83,22 @@ function newEmptyRow(todayStr: string): EditableCallRow {
   };
 }
 
-export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps) {
+export function CallReportPanel({
+  profile,
+  initialCalls,
+}: CallReportPanelProps) {
   const todayStr = new Date().toISOString().split("T")[0];
   const [period, setPeriod] = useState<CallReportPeriod>("week");
-  const [rows, setRows] = useState<EditableCallRow[]>(() => toEditableRows(initialCalls));
+  const [rows, setRows] = useState<EditableCallRow[]>(() =>
+    toEditableRows(initialCalls),
+  );
   const [loadedDates, setLoadedDates] = useState<Set<string>>(
-    () => new Set(initialCalls.map((c) => c.report_date))
+    () => new Set(initialCalls.map((c) => c.report_date)),
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [errorMsg, setErrorMsg] = useState("");
-  const [mobileForm, setMobileForm] = useState<MobileFormState>(emptyMobileForm);
+  const [mobileForm, setMobileForm] =
+    useState<MobileFormState>(emptyMobileForm);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -149,7 +156,8 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
   const handleConfirmExportExcel = async () => {
     setShowExcelPreview(false);
     try {
-      const label = PERIOD_TABS.find((t) => t.value === period)?.label || period;
+      const label =
+        PERIOD_TABS.find((t) => t.value === period)?.label || period;
       const exportRows = filteredRows.filter((r) => r.customer_name.trim());
       await downloadCallReportExcel(
         `Bao_cao_cuoc_goi_${profile.full_name.replace(/\s+/g, "_")}_${label}.xlsx`,
@@ -158,16 +166,20 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
           staffName: profile.full_name,
           branchName: branchLabel,
           calls: exportRows,
-        }
+        },
       );
     } catch {
       window.alert("Không xuất được Excel. Vui lòng thử lại.");
     }
   };
 
-  const updateRow = (rowId: string, field: keyof Omit<CallReportEntry, "type">, value: string) => {
+  const updateRow = (
+    rowId: string,
+    field: keyof Omit<CallReportEntry, "type">,
+    value: string,
+  ) => {
     setRows((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r))
+      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r)),
     );
   };
 
@@ -223,8 +235,8 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
     if (editingRowId) {
       setRows((prev) =>
         prev.map((r) =>
-          r.rowId === editingRowId ? { ...r, ...mobileForm } : r
-        )
+          r.rowId === editingRowId ? { ...r, ...mobileForm } : r,
+        ),
       );
       clearMobileForm();
       return;
@@ -245,7 +257,7 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
 
   const persistRows = async (
     currentRows: EditableCallRow[],
-    extraDates: Iterable<string> = []
+    extraDates: Iterable<string> = [],
   ) => {
     const datesToSave = new Set([...loadedDates, ...extraDates]);
     if (datesToSave.size === 0) return;
@@ -311,7 +323,8 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
     });
   };
 
-  const allSelected = filteredRows.length > 0 && selected.size === filteredRows.length;
+  const allSelected =
+    filteredRows.length > 0 && selected.size === filteredRows.length;
 
   return (
     <div
@@ -320,7 +333,13 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
       }`}
     >
       <div className="relative shrink-0 overflow-hidden border-b border-primary/30">
-        <Image src={DEFAULT_BG_URL} alt="" fill className="object-cover opacity-30" aria-hidden />
+        <Image
+          src={DEFAULT_BG_URL}
+          alt=""
+          fill
+          className="object-cover opacity-30"
+          aria-hidden
+        />
         <div
           className="absolute inset-0 bg-gradient-to-r from-primary via-primary to-primary-hover opacity-95"
           aria-hidden
@@ -342,7 +361,13 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
               disabled={isPending}
               className="shrink-0 h-9 flex items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold text-primary bg-white hover:bg-white/90 border border-white/30 shadow-sm cursor-pointer touch-manipulation transition-colors disabled:opacity-60"
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -423,17 +448,23 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Tên *</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Tên *
+              </span>
               <input
                 type="text"
                 placeholder="Tên KH"
                 value={mobileForm.customer_name}
-                onChange={(e) => updateMobileForm("customer_name", e.target.value)}
+                onChange={(e) =>
+                  updateMobileForm("customer_name", e.target.value)
+                }
                 className={mobileFormInput}
               />
             </label>
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Điện thoại</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Điện thoại
+              </span>
               <input
                 type="tel"
                 placeholder="SĐT"
@@ -443,7 +474,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
               />
             </label>
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Tỉnh</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Tỉnh
+              </span>
               <input
                 type="text"
                 placeholder="Tỉnh"
@@ -453,7 +486,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
               />
             </label>
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Loại mooc</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Loại mooc
+              </span>
               <AdminSelect
                 micro
                 portal
@@ -464,17 +499,23 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
               />
             </label>
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Báo giá</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Báo giá
+              </span>
               <input
                 type="text"
                 placeholder="Giá"
                 value={mobileForm.price_quote}
-                onChange={(e) => updateMobileForm("price_quote", e.target.value)}
+                onChange={(e) =>
+                  updateMobileForm("price_quote", e.target.value)
+                }
                 className={mobileFormInput}
               />
             </label>
             <label className="space-y-0.5">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Ngày</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Ngày
+              </span>
               <input
                 type="text"
                 readOnly
@@ -483,12 +524,16 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
               />
             </label>
             <label className="space-y-0.5 col-span-2">
-              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">Báo cáo sau gọi</span>
+              <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                Báo cáo sau gọi
+              </span>
               <input
                 type="text"
                 placeholder="Ghi chú sau cuộc gọi"
                 value={mobileForm.post_call_notes}
-                onChange={(e) => updateMobileForm("post_call_notes", e.target.value)}
+                onChange={(e) =>
+                  updateMobileForm("post_call_notes", e.target.value)
+                }
                 className={mobileFormInput}
               />
             </label>
@@ -528,18 +573,33 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                     aria-label="Chọn tất cả"
                   />
                 </th>
-                <th className="px-1 py-1.5 font-bold border border-white/15">Tên</th>
-                <th className="px-1 py-1.5 font-bold border border-white/15">SĐT</th>
-                <th className="px-1 py-1.5 font-bold border border-white/15">Tỉnh</th>
-                <th className="px-1 py-1.5 font-bold border border-white/15">Mooc</th>
-                <th className="px-1 py-1.5 font-bold border border-white/15">Giá</th>
-                <th className="px-1 py-1.5 font-bold border border-white/15 w-11">Ngày</th>
+                <th className="px-1 py-1.5 font-bold border border-white/15">
+                  Tên
+                </th>
+                <th className="px-1 py-1.5 font-bold border border-white/15">
+                  SĐT
+                </th>
+                <th className="px-1 py-1.5 font-bold border border-white/15">
+                  Tỉnh
+                </th>
+                <th className="px-1 py-1.5 font-bold border border-white/15">
+                  Mooc
+                </th>
+                <th className="px-1 py-1.5 font-bold border border-white/15">
+                  Giá
+                </th>
+                <th className="px-1 py-1.5 font-bold border border-white/15 w-11">
+                  Ngày
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-2 py-6 text-center text-slate-400 italic border border-slate-200/80">
+                  <td
+                    colSpan={7}
+                    className="px-2 py-6 text-center text-slate-400 italic border border-slate-200/80"
+                  >
                     Chưa có dòng — điền form phía trên
                   </td>
                 </tr>
@@ -605,19 +665,36 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                       aria-label="Chọn tất cả"
                     />
                   </th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15">Tên</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15">Điện thoại</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15">Tỉnh</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[5.5rem]">Loại mooc</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15">Báo giá</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[7rem]">Báo cáo sau gọi</th>
-                  <th className="px-2 py-2 font-bold text-center border border-white/15 w-20">Ngày</th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15">
+                    Tên
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15">
+                    Điện thoại
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15">
+                    Tỉnh
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[5.5rem]">
+                    Loại mooc
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15">
+                    Báo giá
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[7rem]">
+                    Báo cáo sau gọi
+                  </th>
+                  <th className="px-2 py-2 font-bold text-center border border-white/15 w-20">
+                    Ngày
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-3 py-10 text-center text-slate-400 italic border border-slate-200/80">
+                    <td
+                      colSpan={8}
+                      className="px-3 py-10 text-center text-slate-400 italic border border-slate-200/80"
+                    >
                       Chưa có dòng nào — bấm &quot;Thêm dòng&quot; để bắt đầu
                     </td>
                   </tr>
@@ -626,7 +703,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                     <tr
                       key={row.rowId}
                       className={`${i % 2 === 1 ? "bg-slate-50/60" : "bg-white"} ${
-                        selected.has(row.rowId) ? "ring-1 ring-inset ring-primary/25" : ""
+                        selected.has(row.rowId)
+                          ? "ring-1 ring-inset ring-primary/25"
+                          : ""
                       }`}
                     >
                       <td className="px-2 py-1 border border-slate-200/80 text-center">
@@ -647,7 +726,13 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           type="text"
                           placeholder="Tên *"
                           value={row.customer_name}
-                          onChange={(e) => updateRow(row.rowId, "customer_name", e.target.value)}
+                          onChange={(e) =>
+                            updateRow(
+                              row.rowId,
+                              "customer_name",
+                              e.target.value,
+                            )
+                          }
                           className={`${cellInput} font-semibold`}
                         />
                       </td>
@@ -656,7 +741,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           type="tel"
                           placeholder="SĐT"
                           value={row.phone}
-                          onChange={(e) => updateRow(row.rowId, "phone", e.target.value)}
+                          onChange={(e) =>
+                            updateRow(row.rowId, "phone", e.target.value)
+                          }
                           className={cellInput}
                         />
                       </td>
@@ -665,7 +752,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           type="text"
                           placeholder="Tỉnh"
                           value={row.province}
-                          onChange={(e) => updateRow(row.rowId, "province", e.target.value)}
+                          onChange={(e) =>
+                            updateRow(row.rowId, "province", e.target.value)
+                          }
                           className={cellInput}
                         />
                       </td>
@@ -674,7 +763,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           compact
                           portal
                           value={row.trailer_type}
-                          onChange={(v) => updateRow(row.rowId, "trailer_type", v)}
+                          onChange={(v) =>
+                            updateRow(row.rowId, "trailer_type", v)
+                          }
                           options={TRAILER_TYPE_OPTIONS}
                           placeholder="—"
                         />
@@ -684,7 +775,9 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           type="text"
                           placeholder="Giá"
                           value={row.price_quote}
-                          onChange={(e) => updateRow(row.rowId, "price_quote", e.target.value)}
+                          onChange={(e) =>
+                            updateRow(row.rowId, "price_quote", e.target.value)
+                          }
                           className={cellInput}
                         />
                       </td>
@@ -693,7 +786,13 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
                           type="text"
                           placeholder="Ghi chú"
                           value={row.post_call_notes}
-                          onChange={(e) => updateRow(row.rowId, "post_call_notes", e.target.value)}
+                          onChange={(e) =>
+                            updateRow(
+                              row.rowId,
+                              "post_call_notes",
+                              e.target.value,
+                            )
+                          }
                           className={cellInput}
                         />
                       </td>
