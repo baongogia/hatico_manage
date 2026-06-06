@@ -78,20 +78,20 @@ export function CallExcelPreviewModal({
               <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2.5 flex items-center justify-center text-[10px] h-10">
                 1
               </div>
-              <div className="col-span-4 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
+              <div className="col-span-5 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
                 CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO
               </div>
-              {/* Logo in Column E-F spanning Rows 1-3 */}
-              <div className="col-span-2 row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4">
+              {/* Logo in Column F spanning Rows 1-3 */}
+              <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo/hatico_logo.png" alt="Logo" className="w-[138px] h-[60px] object-contain" />
+                <img src="/logo/hatico_logo.png" alt="Logo" className="w-[206px] h-[90px] object-contain" />
               </div>
 
               {/* Row 2: Title */}
               <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-3 flex items-center justify-center text-[10px] h-12">
                 2
               </div>
-              <div className="col-span-4 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
+              <div className="col-span-5 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
                 BÁO CÁO CUỘC GỌI
               </div>
 
@@ -99,7 +99,7 @@ export function CallExcelPreviewModal({
               <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2 flex items-center justify-center text-[10px] h-10">
                 3
               </div>
-              <div className="col-span-4 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
+              <div className="col-span-5 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
                 Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {calls.length} cuộc gọi
               </div>
 

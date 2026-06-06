@@ -89,7 +89,7 @@ export function AdminExcelPreviewModal({
               {/* Logo container spanning Rows 1-3 */}
               <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo/hatico_logo.png" alt="Logo" className="w-[138px] h-[60px] object-contain" />
+                <img src="/logo/hatico_logo.png" alt="Logo" className="w-[206px] h-[90px] object-contain" />
               </div>
 
               {/* Row 2: Title */}

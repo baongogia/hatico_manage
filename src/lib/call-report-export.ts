@@ -54,7 +54,7 @@ export async function downloadCallReportExcel(filename: string, options: ExportO
   const addMergedLine = (
     text: string,
     style: Partial<ExcelJS.Style>,
-    endCol: "D" | "F" = "F"
+    endCol: "E" | "F" = "F"
   ) => {
     const row = sheet.addRow([text, "", "", "", "", ""]);
     const n = row.number;
@@ -78,17 +78,17 @@ export async function downloadCallReportExcel(filename: string, options: ExportO
     console.error("Failed to load logo for Excel", err);
   }
 
-  // 2. Add header fields (merge A:D, leave Column E-F open for logo)
+  // 2. Add header fields (merge A:E, leave Column F open for logo)
   const line1 = addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
     font: { bold: true, size: 11 },
     alignment: { vertical: "middle" },
-  }, "D");
+  }, "E");
   sheet.getRow(line1).height = 24;
 
   const line2 = addMergedLine("BÁO CÁO CUỘC GỌI", {
     font: { bold: true, size: 14, color: { argb: PRIMARY } },
     alignment: { vertical: "middle" },
-  }, "D");
+  }, "E");
   sheet.getRow(line2).height = 32;
 
   const line3 = addMergedLine(
@@ -97,15 +97,15 @@ export async function downloadCallReportExcel(filename: string, options: ExportO
       font: { size: 10, color: { argb: "FF334155" } },
       alignment: { wrapText: true, vertical: "middle" },
     },
-    "D"
+    "E"
   );
   sheet.getRow(line3).height = 24;
 
-  // Add the logo in Column E (col: 4) spanning rows 1-3
+  // Add the logo in Column F (col: 5) spanning rows 1-3
   if (imageId !== undefined) {
     sheet.addImage(imageId, {
-      tl: { col: 4, row: 0 },
-      ext: { width: 138, height: 60 },
+      tl: { col: 5, row: 0 },
+      ext: { width: 206, height: 90 },
     });
   }
 

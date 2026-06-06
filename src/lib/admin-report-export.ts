@@ -125,7 +125,7 @@ export async function downloadAdminReportExcel(filename: string, options: Export
   if (imageId !== undefined) {
     sheet.addImage(imageId, {
       tl: { col: 2, row: 0 },
-      ext: { width: 138, height: 60 },
+      ext: { width: 206, height: 90 },
     });
   }
 
