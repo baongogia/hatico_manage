@@ -31,7 +31,6 @@ const PRIMARY = "FF0F2D59";
 const BORDER = "FF475569";
 const HEADER_FILL = "FFE2E8F0";
 const ALT_FILL = "FFF8FAFC";
-const META_FILL = "FFF1F5F9";
 
 const thinBorder: Partial<ExcelJS.Borders> = {
   top: { style: "thin", color: { argb: BORDER } },
@@ -44,10 +43,6 @@ function styleRow(row: ExcelJS.Row, style: Partial<ExcelJS.Style>) {
   row.eachCell({ includeEmpty: true }, (cell) => {
     cell.style = { ...cell.style, ...style };
   });
-}
-
-function mergeRow(sheet: ExcelJS.Worksheet, rowNum: number) {
-  sheet.mergeCells(`A${rowNum}:C${rowNum}`);
 }
 
 type ExportOptions = {
@@ -76,54 +71,85 @@ export async function downloadAdminReportExcel(filename: string, options: Export
     { key: "tasks", width: 52 },
   ];
 
-  const addMergedLine = (text: string, style: Partial<ExcelJS.Style>) => {
+  const addMergedLine = (
+    text: string,
+    style: Partial<ExcelJS.Style>,
+    endCol: "B" | "C" = "C"
+  ) => {
     const row = sheet.addRow([text, "", ""]);
     const n = row.number;
-    mergeRow(sheet, n);
+    sheet.mergeCells(`A${n}:${endCol}${n}`);
     styleRow(row, style);
     return n;
   };
 
-  addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
+  // 1. Fetch logo and add to workbook
+  let imageId: number | undefined;
+  try {
+    const response = await fetch("/logo/hatico_logo.png");
+    if (response.ok) {
+      const buffer = await response.arrayBuffer();
+      imageId = workbook.addImage({
+        buffer,
+        extension: "png",
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load logo for Excel", err);
+  }
+
+  // 2. Add header fields (merge A:B, leave Column C open for logo)
+  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
     font: { bold: true, size: 11 },
     alignment: { vertical: "middle" },
-  });
+  }, "B");
+  sheet.getRow(line1).height = 24;
 
-  addMergedLine(`TỔNG HỢP BÁO CÁO — ${formatReportDate(selectedDate)}`, {
+  const line2 = addMergedLine(`TỔNG HỢP BÁO CÁO — ${formatReportDate(selectedDate)}`, {
     font: { bold: true, size: 14, color: { argb: PRIMARY } },
     alignment: { vertical: "middle" },
-  });
+  }, "B");
+  sheet.getRow(line2).height = 32;
 
-  addMergedLine(
+  const line3 = addMergedLine(
     `Tổng nhân sự: ${totalStaff} · Đã báo cáo: ${reportedCount} · Chưa báo cáo: ${missingCount} · Hoàn thành: ${reportRate}%`,
     {
       font: { size: 10, color: { argb: "FF334155" } },
       alignment: { wrapText: true, vertical: "middle" },
-    }
+    },
+    "B"
   );
+  sheet.getRow(line3).height = 24;
+
+  // Add the logo in Column C spanning rows 1-3
+  if (imageId !== undefined) {
+    sheet.addImage(imageId, {
+      tl: { col: 2, row: 0 },
+      ext: { width: 138, height: 60 },
+    });
+  }
 
   sheet.addRow([]);
 
   for (const group of groupStaffByBranch(staff, branchFilter)) {
     const branchNum = addMergedLine(`--- ${group.branchName} ---`, {
       font: { bold: true, size: 11, color: { argb: PRIMARY } },
-      fill: { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } },
       alignment: { horizontal: "center", vertical: "middle" },
       border: {
-        top: { style: "medium", color: { argb: PRIMARY } },
-        bottom: { style: "thin", color: { argb: BORDER } },
+        bottom: { style: "thin", color: { argb: PRIMARY } },
       },
-    });
+    }, "C");
     sheet.getRow(branchNum).height = 22;
 
-    addMergedLine(
+    const metaNum = addMergedLine(
       `${group.rows.length} nhân sự · Đã báo cáo ${group.reported}/${group.rows.length}`,
       {
         font: { size: 9, italic: true, color: { argb: "FF475569" } },
-        fill: { type: "pattern", pattern: "solid", fgColor: { argb: META_FILL } },
-        alignment: { horizontal: "center" },
-      }
+        alignment: { horizontal: "center", vertical: "middle" },
+      },
+      "C"
     );
+    sheet.getRow(metaNum).height = 18;
 
     const headerRow = sheet.addRow(["Họ tên", "Trạng thái", "Việc làm"]);
     styleRow(headerRow, {
@@ -149,6 +175,7 @@ export async function downloadAdminReportExcel(filename: string, options: Export
         border: thinBorder,
         alignment: { vertical: "top", wrapText: true },
       });
+      dataRow.getCell(1).font = { size: 10, bold: true };
       if (s.hasReport) {
         dataRow.getCell(2).font = { size: 10, color: { argb: "FF059669" }, bold: true };
       } else {

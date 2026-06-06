@@ -10,6 +10,7 @@ import {
 } from "../actions";
 import type { CallReportEntry, CallReportPeriod } from "@/lib/report-data";
 import { downloadCallReportExcel } from "@/lib/call-report-export";
+import { CallExcelPreviewModal } from "./call-excel-preview-modal";
 import { layoutGap, layoutPad } from "@/lib/glass-styles";
 import { DEFAULT_BG_URL } from "./page-background";
 import AdminSelect from "./admin-select";
@@ -92,6 +93,7 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
   const [errorMsg, setErrorMsg] = useState("");
   const [mobileForm, setMobileForm] = useState<MobileFormState>(emptyMobileForm);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSave] = useTransition();
   const focusRowIdRef = useRef<string | null>(null);
@@ -140,7 +142,12 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
     });
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
+    setShowExcelPreview(true);
+  };
+
+  const handleConfirmExportExcel = async () => {
+    setShowExcelPreview(false);
     try {
       const label = PERIOD_TABS.find((t) => t.value === period)?.label || period;
       const exportRows = filteredRows.filter((r) => r.customer_name.trim());
@@ -700,8 +707,17 @@ export function CallReportPanel({ profile, initialCalls }: CallReportPanelProps)
             </table>
           </div>
         </div>
-
       </div>
+
+      <CallExcelPreviewModal
+        open={showExcelPreview}
+        onClose={() => setShowExcelPreview(false)}
+        onConfirm={handleConfirmExportExcel}
+        period={period}
+        staffName={profile.full_name}
+        branchName={branchLabel}
+        calls={filteredRows.filter((r) => r.customer_name.trim())}
+      />
     </div>
   );
 }

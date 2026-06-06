@@ -62,7 +62,7 @@ export function AdminSummaryPrintDocument({
           </p>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/hatico_logo.png" alt="" width={112} height={112} className="print-logo" />
+        <img src="/logo/hatico_logo.png" alt="" width={120} height={120} className="print-logo" />
       </div>
 
       {printByBranch.map((group, index) => (

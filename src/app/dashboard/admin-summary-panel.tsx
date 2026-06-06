@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { AdminSummaryPrintDocument } from "./admin-summary-print-document";
 import {
   BarChart,
@@ -28,6 +27,7 @@ import {
 } from "../actions";
 import { splitReportItems, TaskItem } from "@/lib/report-data";
 import { downloadAdminReportExcel } from "@/lib/admin-report-export";
+import { AdminExcelPreviewModal } from "./admin-excel-preview-modal";
 import AdminSelect, { adminControlClass } from "./admin-select";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
 import { ReportStatusIndicator } from "./report-status-indicator";
@@ -55,7 +55,6 @@ export function AdminSummaryPanel({
   initialData,
   onDataUpdate,
 }: AdminSummaryPanelProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [data, setData] = useState(initialData);
   const {
@@ -75,6 +74,7 @@ export function AdminSummaryPanel({
   const [staffSearch, setStaffSearch] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [printMounted, setPrintMounted] = useState(false);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
 
   // Report Form Modal states
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -247,7 +247,12 @@ export function AdminSummaryPanel({
     });
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
+    setShowExcelPreview(true);
+  };
+
+  const handleConfirmExportExcel = async () => {
+    setShowExcelPreview(false);
     try {
       await downloadAdminReportExcel(`Bao_cao_Hatico_${selectedDate}.xlsx`, {
         selectedDate,
@@ -629,6 +634,19 @@ export function AdminSummaryPanel({
           onClose={() => setShowDatePicker(false)}
           onSelect={handleDateChange}
           title="Chọn ngày xem báo cáo"
+        />
+
+        <AdminExcelPreviewModal
+          open={showExcelPreview}
+          onClose={() => setShowExcelPreview(false)}
+          onConfirm={handleConfirmExportExcel}
+          selectedDate={selectedDate}
+          totalStaff={totalStaff}
+          reportedCount={reportedCount}
+          missingCount={missingCount}
+          reportRate={reportRate}
+          staff={initialStaff}
+          branchFilter={branchFilter}
         />
 
         {reportModalOpen && modalTargetStaff && (
