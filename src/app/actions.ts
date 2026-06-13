@@ -65,6 +65,8 @@ export interface AdminStaffRow {
   hasReport: boolean;
   tasks: string[];
   report_id?: string;
+  check_in_time?: string;
+  absence_reason?: string;
 }
 
 export interface AdminDashboardData {
@@ -486,6 +488,20 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
       .map((t) => t.title)
       .filter(Boolean);
 
+    const absenceTask = tasks.find((t) => t.startsWith("Nghỉ:"));
+    const hasReport = tasks.length > 0 && !absenceTask;
+    const absence_reason = absenceTask ? absenceTask.substring(5).trim() : undefined;
+
+    let check_in_time: string | undefined = undefined;
+    if (report?.created_at && hasReport) {
+      const d = new Date(report.created_at);
+      check_in_time = d.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
+    }
+
     return {
       id: s.id,
       full_name: s.full_name,
@@ -493,9 +509,11 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
       department: s.department,
       branch_id: s.branch_id,
       branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
-      hasReport: tasks.length > 0,
-      tasks,
+      hasReport,
+      tasks: hasReport ? tasks : [],
       report_id: tasks.length > 0 ? report?.id : undefined,
+      check_in_time,
+      absence_reason,
     };
   });
 
@@ -1069,4 +1087,215 @@ export async function loginUser(profileId: string, role: string, fullName: strin
   cookieStore.set("hatico_user_role", role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
   cookieStore.set("hatico_user_name", fullName, { path: "/", maxAge: 60 * 60 * 24 * 30 });
   return { success: true };
+}
+
+export interface MonthlyAttendanceStaffRow {
+  id: number;
+  full_name: string;
+  position: string | null;
+  department: string | null;
+  branch_id: string | null;
+  branch_name: string;
+  attendanceMap: Record<string, { hasReport: boolean; checkInTime?: string; reportId?: string; absenceReason?: string }>;
+  presentCount: number;
+}
+
+export interface AdminMonthlyAttendanceData {
+  month: string;
+  staff: MonthlyAttendanceStaffRow[];
+  totalStaff: number;
+  branches: { id: string; name: string }[];
+}
+
+export async function getAdminMonthlyAttendance(monthStr: string) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const [year, month] = monthStr.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const start = `${monthStr}-01`;
+  const end = `${monthStr}-${String(lastDay).padStart(2, "0")}`;
+
+  const [{ data: branches }, { data: staff }, { data: profiles }, { data: reports }] =
+    await Promise.all([
+      supabase.from("branches").select("id, name").order("name"),
+      supabase
+        .from("staff_staging")
+        .select("id, full_name, position, department, branch_id")
+        .order("full_name"),
+      supabase.from("profiles").select("id, full_name"),
+      supabase
+        .from("daily_reports")
+        .select("id, user_id, report_date, created_at, tasks_data")
+        .gte("report_date", start)
+        .lte("report_date", end),
+    ]);
+
+  const branchMap = new Map((branches || []).map((b) => [b.id, b.name]));
+  const profileByName = new Map(
+    (profiles || []).map((p) => [p.full_name.trim().toLowerCase(), p.id])
+  );
+
+  const reportsGrouped = new Map<
+    string,
+    Map<string, { id: string; created_at: string; hasWork: boolean; absenceReason?: string }>
+  >();
+  
+  for (const r of reports || []) {
+    const userMap = reportsGrouped.get(r.user_id) || new Map();
+    const tasks = splitReportItems(r.tasks_data || []).tasks.filter(t => t.title.trim());
+    const absenceTask = tasks.find(t => t.title.startsWith("Nghỉ:"));
+    const hasWork = tasks.length > 0 && !absenceTask;
+    const absenceReason = absenceTask ? absenceTask.title.substring(5).trim() : undefined;
+
+    userMap.set(r.report_date, {
+      id: r.id,
+      created_at: r.created_at,
+      hasWork,
+      absenceReason,
+    });
+    reportsGrouped.set(r.user_id, userMap);
+  }
+
+  const staffRows: MonthlyAttendanceStaffRow[] = (staff || []).map((s) => {
+    const profileId = profileByName.get(s.full_name.trim().toLowerCase());
+    const userReports = profileId ? reportsGrouped.get(profileId) : undefined;
+    
+    const attendanceMap: MonthlyAttendanceStaffRow["attendanceMap"] = {};
+    let presentCount = 0;
+
+    for (let day = 1; day <= lastDay; day++) {
+      const dateStr = `${monthStr}-${String(day).padStart(2, "0")}`;
+      const dayReport = userReports?.get(dateStr);
+      
+      const hasReport = !!dayReport?.hasWork;
+      const absenceReason = dayReport?.absenceReason;
+      let checkInTime: string | undefined = undefined;
+      if (dayReport?.created_at && hasReport) {
+        const d = new Date(dayReport.created_at);
+        checkInTime = d.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Ho_Chi_Minh",
+        });
+      }
+
+      attendanceMap[dateStr] = {
+        hasReport,
+        checkInTime,
+        reportId: dayReport?.id,
+        absenceReason,
+      };
+
+      if (hasReport) {
+        presentCount++;
+      }
+    }
+
+    return {
+      id: s.id,
+      full_name: s.full_name,
+      position: s.position,
+      department: s.department,
+      branch_id: s.branch_id,
+      branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
+      attendanceMap,
+      presentCount,
+    };
+  });
+
+  return {
+    month: monthStr,
+    staff: staffRows,
+    totalStaff: staffRows.length,
+    branches: (branches || []).map(b => ({ id: b.id, name: b.name })),
+  } as AdminMonthlyAttendanceData;
+}
+
+export async function markStaffPresent(staffId: number, date: string) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  const provisionResult = await getOrCreateProfileForStaff(staffId);
+  if ("error" in provisionResult || !provisionResult.profileId) {
+    return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+  }
+  const targetUserId = provisionResult.profileId;
+
+  return await saveDailyReport({
+    date,
+    tasksData: [{ title: "Điểm danh (Admin đánh dấu)", progress: "", status: "completed" }],
+    status: "submitted",
+    userId: targetUserId,
+  });
+}
+
+export async function deleteDailyReport(staffId: number, date: string) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const { data: staff } = await supabase
+    .from("staff_staging")
+    .select("full_name")
+    .eq("id", staffId)
+    .single();
+
+  if (!staff) {
+    return { error: "Không tìm thấy nhân viên" };
+  }
+
+  const { data: userProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("full_name", staff.full_name)
+    .maybeSingle();
+
+  if (!userProfile) {
+    return { success: true };
+  }
+
+  const { error } = await supabase
+    .from("daily_reports")
+    .delete()
+    .eq("user_id", userProfile.id)
+    .eq("report_date", date);
+
+  if (error) {
+    console.error("Error deleting report:", error);
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function markStaffAbsent(staffId: number, date: string, reason?: string) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  if (!reason || reason.trim() === "") {
+    return await deleteDailyReport(staffId, date);
+  }
+
+  const provisionResult = await getOrCreateProfileForStaff(staffId);
+  if ("error" in provisionResult || !provisionResult.profileId) {
+    return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+  }
+  const targetUserId = provisionResult.profileId;
+
+  return await saveDailyReport({
+    date,
+    tasksData: [{ title: `Nghỉ: ${reason.trim()}`, progress: "", status: "completed" }],
+    status: "submitted",
+    userId: targetUserId,
+  });
 }

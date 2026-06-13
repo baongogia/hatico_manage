@@ -21,10 +21,15 @@ import { AdminSummarySkeleton } from "./admin-summary-skeleton";
 import { NavTabs } from "./nav-tabs";
 import { ReportStatusIndicator } from "./report-status-indicator";
 
-type DashboardTab = "work" | "calls" | "summary";
+type DashboardTab = "work" | "calls" | "summary" | "attendance";
 
 const AdminSummaryPanel = dynamic(
   () => import("./admin-summary-panel").then((m) => m.AdminSummaryPanel),
+  { loading: () => <AdminSummarySkeleton /> },
+);
+
+const AdminAttendancePanel = dynamic(
+  () => import("./admin-attendance-panel").then((m) => m.AdminAttendancePanel),
   { loading: () => <AdminSummarySkeleton /> },
 );
 
@@ -66,7 +71,12 @@ export default function DashboardClient({
   const isSales = isSalesDepartment(profile.department?.name);
 
   const syncTabUrl = useCallback((tab: DashboardTab) => {
-    const url = tab === "summary" ? "/dashboard?view=summary" : "/dashboard";
+    const url =
+      tab === "summary"
+        ? "/dashboard?view=summary"
+        : tab === "attendance"
+          ? "/dashboard?view=attendance"
+          : "/dashboard";
     window.history.replaceState(null, "", url);
   }, []);
 
@@ -77,6 +87,7 @@ export default function DashboardClient({
           ? [{ value: "calls" as const, label: "Báo cáo cuộc gọi", shortLabel: "Cuộc gọi" }]
           : []),
         { value: "summary" as const, label: "Tổng hợp", shortLabel: "Tổng hợp" },
+        { value: "attendance" as const, label: "Báo cáo điểm danh", shortLabel: "Điểm danh" },
       ]
     : [
         { value: "work" as const, label: "Báo cáo công việc", shortLabel: "Công việc" },
@@ -99,9 +110,9 @@ export default function DashboardClient({
   }, [isAdmin, adminData]);
 
   const handleTabChange = (tab: DashboardTab) => {
-    if (tab === "summary") {
-      setActiveTab("summary");
-      syncTabUrl("summary");
+    if (tab === "summary" || tab === "attendance") {
+      setActiveTab(tab);
+      syncTabUrl(tab);
       if (adminData) return;
       startAdminLoad(async () => {
         const result = await getAdminDashboardData();
@@ -265,6 +276,14 @@ export default function DashboardClient({
                 <AdminSummarySkeleton />
               ) : adminData ? (
                 <AdminSummaryPanel initialData={adminData} onDataUpdate={setAdminData} />
+              ) : (
+                <AdminSummarySkeleton />
+              )
+            ) : activeTab === "attendance" ? (
+              adminLoading && !adminData ? (
+                <AdminSummarySkeleton />
+              ) : adminData ? (
+                <AdminAttendancePanel initialData={adminData} onDataUpdate={setAdminData} />
               ) : (
                 <AdminSummarySkeleton />
               )

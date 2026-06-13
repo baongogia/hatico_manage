@@ -22,10 +22,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   const initialTab =
-    data.role === "admin" && resolvedParams.view === "summary" ? "summary" : "work";
+    data.role === "admin" && resolvedParams.view === "summary"
+      ? "summary"
+      : data.role === "admin" && resolvedParams.view === "attendance"
+        ? "attendance"
+        : "work";
 
   let initialAdminData = null;
-  if (initialTab === "summary") {
+  if (initialTab === "summary" || initialTab === "attendance") {
     const adminData = await getAdminDashboardData(dateStr, user);
     if (!("error" in adminData)) {
       initialAdminData = adminData;
