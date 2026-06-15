@@ -85,7 +85,7 @@ export function DailyAttendancePreviewModal({
                 1
               </div>
               <div className="col-span-5 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
-                CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO
+                CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
               </div>
               {/* Logo container spanning Rows 1-3 */}
               <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4">
@@ -307,7 +307,7 @@ export function MonthlyAttendancePreviewModal({
                 {/* Columns A-D Texts (width 480px) */}
                 <div className="flex flex-col w-[480px] shrink-0 border-r border-slate-200">
                   <div className="font-bold text-slate-900 border-b border-slate-200 px-3 h-9 flex items-center text-xs">
-                    CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO
+                    CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
                   </div>
                   <div className="font-bold text-[#0f2d59] border-b border-slate-200 px-3 h-11 flex items-center text-sm">
                     BẢNG CÔNG ĐIỂM DANH CHI TIẾT - THÁNG {monthNum}/{year}

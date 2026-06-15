@@ -26,7 +26,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       ? "summary"
       : data.role === "admin" && resolvedParams.view === "attendance"
         ? "attendance"
-        : "work";
+        : resolvedParams.view === "marketing"
+          ? "marketing"
+          : "work";
 
   let initialAdminData = null;
   if (initialTab === "summary" || initialTab === "attendance") {

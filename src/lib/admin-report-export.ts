@@ -99,7 +99,7 @@ export async function downloadAdminReportExcel(filename: string, options: Export
   }
 
   // 2. Add header fields (merge A:B, leave Column C open for logo)
-  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
+  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO", {
     font: { bold: true, size: 11 },
     alignment: { vertical: "middle" },
   }, "B");

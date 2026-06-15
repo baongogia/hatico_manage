@@ -13,7 +13,7 @@ import {
   CallReportRow,
 } from "../actions";
 import { glassPanel, layoutGap, layoutPad } from "@/lib/glass-styles";
-import { hasWorkTasks, isSalesDepartment, splitReportItems } from "@/lib/report-data";
+import { hasWorkTasks, isSalesDepartment, splitReportItems, isMarketingDepartment } from "@/lib/report-data";
 import { CallReportPanel } from "./call-report-panel";
 import LiveClock from "./live-clock";
 import PageBackground from "./page-background";
@@ -21,7 +21,7 @@ import { AdminSummarySkeleton } from "./admin-summary-skeleton";
 import { NavTabs } from "./nav-tabs";
 import { ReportStatusIndicator } from "./report-status-indicator";
 
-type DashboardTab = "work" | "calls" | "summary" | "attendance";
+type DashboardTab = "work" | "calls" | "summary" | "attendance" | "marketing";
 
 const AdminSummaryPanel = dynamic(
   () => import("./admin-summary-panel").then((m) => m.AdminSummaryPanel),
@@ -30,6 +30,11 @@ const AdminSummaryPanel = dynamic(
 
 const AdminAttendancePanel = dynamic(
   () => import("./admin-attendance-panel").then((m) => m.AdminAttendancePanel),
+  { loading: () => <AdminSummarySkeleton /> },
+);
+
+const MarketingReportPanel = dynamic(
+  () => import("./marketing-report-panel").then((m) => m.MarketingReportPanel),
   { loading: () => <AdminSummarySkeleton /> },
 );
 
@@ -69,6 +74,7 @@ export default function DashboardClient({
   const { role, profile, reports: initialReports = [], callReports = [] } = initialData;
   const isAdmin = role === "admin";
   const isSales = isSalesDepartment(profile.department?.name);
+  const isMarketing = isMarketingDepartment(profile.department?.name);
 
   const syncTabUrl = useCallback((tab: DashboardTab) => {
     const url =
@@ -76,7 +82,9 @@ export default function DashboardClient({
         ? "/dashboard?view=summary"
         : tab === "attendance"
           ? "/dashboard?view=attendance"
-          : "/dashboard";
+          : tab === "marketing"
+            ? "/dashboard?view=marketing"
+            : "/dashboard";
     window.history.replaceState(null, "", url);
   }, []);
 
@@ -86,12 +94,16 @@ export default function DashboardClient({
         ...(isSales
           ? [{ value: "calls" as const, label: "Báo cáo cuộc gọi", shortLabel: "Cuộc gọi" }]
           : []),
+        { value: "marketing" as const, label: "Báo cáo Marketing", shortLabel: "Marketing" },
         { value: "summary" as const, label: "Tổng hợp", shortLabel: "Tổng hợp" },
         { value: "attendance" as const, label: "Báo cáo điểm danh", shortLabel: "Điểm danh" },
       ]
     : [
         { value: "work" as const, label: "Báo cáo công việc", shortLabel: "Công việc" },
         { value: "calls" as const, label: "Báo cáo cuộc gọi", shortLabel: "Cuộc gọi" },
+        ...(isMarketing
+          ? [{ value: "marketing" as const, label: "Báo cáo Marketing", shortLabel: "Marketing" }]
+          : []),
       ];
 
   useEffect(() => {
@@ -260,7 +272,7 @@ export default function DashboardClient({
           >
             {header}
 
-            {(isAdmin || isSales) && (
+            {(isAdmin || isSales || isMarketing) && (
               <NavTabs
                 variant="glass"
                 ariaLabel="Chọn chức năng"
@@ -289,6 +301,8 @@ export default function DashboardClient({
               )
             ) : activeTab === "calls" ? (
               <CallReportPanel profile={profile} initialCalls={callReports} />
+            ) : activeTab === "marketing" ? (
+              <MarketingReportPanel profile={profile} />
             ) : (
               <div className={`no-print flex flex-1 min-h-0 flex-col overflow-hidden min-w-0 ${layoutGap}`}>
                 <div className={`flex flex-1 min-h-0 max-sm:overflow-y-auto sm:overflow-hidden flex-col sm:flex-row ${layoutGap}`}>

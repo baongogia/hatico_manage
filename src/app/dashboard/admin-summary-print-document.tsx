@@ -54,7 +54,7 @@ export function AdminSummaryPrintDocument({
     <div className="admin-print-root">
       <div className="print-header">
         <div>
-          <p className="print-company">CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO</p>
+          <p className="print-company">CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO</p>
           <h1 className="print-title">TỔNG HỢP BÁO CÁO — {formatReportDate(selectedDate)}</h1>
           <p className="print-summary">
             Tổng nhân sự: {totalStaff} · Đã báo cáo: {reportedCount} · Chưa báo cáo: {missingCount} · Hoàn

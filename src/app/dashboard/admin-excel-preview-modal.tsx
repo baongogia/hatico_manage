@@ -84,7 +84,7 @@ export function AdminExcelPreviewModal({
                 1
               </div>
               <div className="col-span-2 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
-                CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO
+                CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
               </div>
               {/* Logo container spanning Rows 1-3 */}
               <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4">

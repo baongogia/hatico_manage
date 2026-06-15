@@ -8,9 +8,14 @@ import {
   type CallReportRow,
   type ReportDataItem,
   type CallReportPeriod,
+  type MarketingPostEntry,
+  type MarketingEventEntry,
+  type MarketingPostRow,
+  type MarketingEventRow,
   splitReportItems,
   getPeriodStartDate,
   isSalesDepartment,
+  isMarketingDepartment,
 } from "@/lib/report-data";
 
 // Interface definitions
@@ -85,6 +90,10 @@ export type {
   CallReportRow,
   ReportDataItem,
   CallReportPeriod,
+  MarketingPostEntry,
+  MarketingEventEntry,
+  MarketingPostRow,
+  MarketingEventRow,
 } from "@/lib/report-data";
 
 export interface DailyReport {
@@ -630,10 +639,10 @@ export async function saveCallReports(params: {
     .eq("report_date", params.date)
     .maybeSingle();
 
-  const { tasks: existingTasks } = splitReportItems(
-    (existingReport?.tasks_data || []) as ReportDataItem[]
+  const existingNonCalls = ((existingReport?.tasks_data || []) as ReportDataItem[]).filter(
+    (item) => item.type !== "call"
   );
-  const mergedData: ReportDataItem[] = [...existingTasks, ...callEntries];
+  const mergedData: ReportDataItem[] = [...existingNonCalls, ...callEntries];
 
   if (!existingReport && callEntries.length === 0) {
     return { success: true };
@@ -730,7 +739,7 @@ export async function saveDailyReport(params: {
 
   // Check if a report already exists for this user and date (if no ID was passed)
   let existingId = params.id;
-  let existingCalls: CallReportEntry[] = [];
+  let existingNonTasks: ReportDataItem[] = [];
   if (!existingId) {
     const { data: existingReport } = await supabase
       .from("daily_reports")
@@ -740,9 +749,9 @@ export async function saveDailyReport(params: {
       .maybeSingle();
     if (existingReport) {
       existingId = existingReport.id;
-      existingCalls = splitReportItems(
-        (existingReport.tasks_data || []) as ReportDataItem[]
-      ).calls;
+      existingNonTasks = ((existingReport.tasks_data || []) as ReportDataItem[]).filter(
+        (item) => item.type && item.type !== "task"
+      );
     }
   } else {
     const { data: existingReport } = await supabase
@@ -754,15 +763,15 @@ export async function saveDailyReport(params: {
       if (existingReport.user_id !== profile.id && profile.role !== "admin") {
         return { error: "Unauthorized: You do not own this report." };
       }
-      existingCalls = splitReportItems(
-        (existingReport.tasks_data || []) as ReportDataItem[]
-      ).calls;
+      existingNonTasks = ((existingReport.tasks_data || []) as ReportDataItem[]).filter(
+        (item) => item.type && item.type !== "task"
+      );
     }
   }
 
   const mergedTasksData: ReportDataItem[] = [
     ...params.tasksData.map((t) => ({ ...t, type: "task" as const })),
-    ...existingCalls,
+    ...existingNonTasks,
   ];
 
   const now = new Date().toISOString();
@@ -1298,4 +1307,247 @@ export async function markStaffAbsent(staffId: number, date: string, reason?: st
     status: "submitted",
     userId: targetUserId,
   });
+}
+
+function extractMarketingPostRows(reports: DailyReport[], period: CallReportPeriod = "all"): MarketingPostRow[] {
+  const startDate = getPeriodStartDate(period);
+  const rows: MarketingPostRow[] = [];
+
+  for (const report of reports) {
+    if (startDate && report.report_date < startDate) continue;
+    const { marketingPosts } = splitReportItems(report.tasks_data || []);
+    for (const post of marketingPosts) {
+      rows.push({
+        ...post,
+        report_date: report.report_date,
+        report_id: report.id,
+        author_name: report.profile?.full_name,
+      });
+    }
+  }
+
+  return rows.sort((a, b) => b.report_date.localeCompare(a.report_date));
+}
+
+function extractMarketingEventRows(reports: DailyReport[], period: CallReportPeriod = "all"): MarketingEventRow[] {
+  const startDate = getPeriodStartDate(period);
+  const rows: MarketingEventRow[] = [];
+
+  for (const report of reports) {
+    if (startDate && report.report_date < startDate) continue;
+    const { marketingEvents } = splitReportItems(report.tasks_data || []);
+    for (const event of marketingEvents) {
+      rows.push({
+        ...event,
+        report_date: report.report_date,
+        report_id: report.id,
+        author_name: report.profile?.full_name,
+      });
+    }
+  }
+
+  return rows.sort((a, b) => b.report_date.localeCompare(a.report_date));
+}
+
+export async function getMarketingReports(period: CallReportPeriod = "all", userId?: string) {
+  const profile = await getSessionUser();
+  if (!profile) return { error: "Unauthorized" };
+
+  const isAdmin = profile.role === "admin";
+  const isMarketing = isMarketingDepartment(profile.department?.name);
+
+  if (!isAdmin && !isMarketing) {
+    return { error: "Unauthorized" };
+  }
+
+  const supabase = createServiceClient();
+  const startDate = getPeriodStartDate(period);
+
+  const { data: profiles, error: pErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, department_id, departments(name)");
+  
+  if (pErr) console.error("Error fetching profiles for marketing report:", pErr);
+  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+  let query = supabase
+    .from("daily_reports")
+    .select("*")
+    .order("report_date", { ascending: false });
+
+  if (!isAdmin) {
+    query = query.eq("user_id", profile.id);
+  } else if (userId && userId !== "all") {
+    query = query.eq("user_id", userId);
+  }
+
+  if (startDate) {
+    query = query.gte("report_date", startDate);
+  }
+
+  const { data: reports, error } = await query;
+  if (error) {
+    console.error("Error fetching marketing reports:", error);
+    return { error: error.message };
+  }
+
+  const mappedReports = (reports || []).map(r => {
+    const repProfile = profileMap.get(r.user_id);
+    const deptName = repProfile?.departments ? (repProfile.departments as any).name : undefined;
+    return {
+      ...r,
+      profile: repProfile ? {
+        id: repProfile.id,
+        full_name: repProfile.full_name,
+        role: "employee" as const,
+        department_id: repProfile.department_id,
+        department: deptName ? { id: repProfile.department_id, name: deptName, branch_id: "" } : undefined
+      } : undefined
+    };
+  });
+
+  const marketingStaff = (profiles || [])
+    .filter(p => {
+      const deptName = p.departments ? (p.departments as any).name : "";
+      return isMarketingDepartment(deptName);
+    })
+    .map(p => ({
+      id: p.id,
+      full_name: p.full_name,
+    }));
+
+  return {
+    posts: extractMarketingPostRows(mappedReports as DailyReport[], period),
+    events: extractMarketingEventRows(mappedReports as DailyReport[], period),
+    marketingStaff,
+    profile,
+  };
+}
+
+export async function saveMarketingReports(params: {
+  date: string;
+  posts: Omit<MarketingPostEntry, "type">[];
+  events: Omit<MarketingEventEntry, "type">[];
+  userId?: string;
+}) {
+  const profile = await getSessionUser();
+  if (!profile) return { error: "Unauthorized" };
+
+  let targetUserId = profile.id;
+  if (params.userId && params.userId !== profile.id) {
+    if (profile.role !== "admin") {
+      return { error: "Unauthorized" };
+    }
+    targetUserId = params.userId;
+  } else {
+    if (profile.role !== "admin" && !isMarketingDepartment(profile.department?.name)) {
+      return { error: "Unauthorized" };
+    }
+  }
+
+  const supabase = createServiceClient();
+  const now = new Date().toISOString();
+
+  const postEntries: MarketingPostEntry[] = params.posts
+    .filter((p) => p.title.trim())
+    .map((p) => ({
+      type: "marketing_post" as const,
+      platform: p.platform,
+      title: p.title.trim(),
+      link: p.link.trim(),
+      views: p.views.trim(),
+      likes: p.likes.trim(),
+      comments: p.comments.trim(),
+      shares: p.shares.trim(),
+      status: p.status,
+    }));
+
+  const eventEntries: MarketingEventEntry[] = params.events
+    .filter((e) => e.event_name.trim())
+    .map((e) => ({
+      type: "marketing_event" as const,
+      event_name: e.event_name.trim(),
+      event_date: e.event_date.trim(),
+      trailer_type: e.trailer_type?.trim(),
+      qty: e.qty?.trim(),
+      location: e.location?.trim(),
+      budget: e.budget.trim(),
+      attendees: e.attendees.trim(),
+      outcome: e.outcome.trim(),
+      status: e.status,
+    }));
+
+  const { data: existingReport } = await supabase
+    .from("daily_reports")
+    .select("*")
+    .eq("user_id", targetUserId)
+    .eq("report_date", params.date)
+    .maybeSingle();
+
+  const existingOtherItems = (existingReport?.tasks_data || [])
+    .filter((item: ReportDataItem) => item.type !== "marketing_post" && item.type !== "marketing_event");
+
+  const mergedData: ReportDataItem[] = [...existingOtherItems, ...postEntries, ...eventEntries];
+
+  if (!existingReport && postEntries.length === 0 && eventEntries.length === 0) {
+    return { success: true };
+  }
+
+  if (existingReport) {
+    const { data, error } = await supabase
+      .from("daily_reports")
+      .update({
+        tasks_data: mergedData,
+        updated_at: now,
+      })
+      .eq("id", existingReport.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating marketing reports:", error);
+      return { error: error.message };
+    }
+    return { success: true, report: data };
+  }
+
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .insert({
+      id: crypto.randomUUID(),
+      user_id: targetUserId,
+      report_date: params.date,
+      tasks_data: mergedData,
+      status: "submitted",
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting marketing reports:", error);
+    return { error: error.message };
+  }
+  return { success: true, report: data };
+}
+
+export async function saveMarketingReportsBatch(
+  entries: {
+    date: string;
+    posts: Omit<MarketingPostEntry, "type">[];
+    events: Omit<MarketingEventEntry, "type">[];
+  }[],
+  userId?: string
+) {
+  for (const entry of entries) {
+    const result = await saveMarketingReports({
+      date: entry.date,
+      posts: entry.posts,
+      events: entry.events,
+      userId,
+    });
+    if (result.error) return { error: result.error };
+  }
+  return { success: true };
 }

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Hatico Manager - Quản lý Báo cáo Công việc",
-  description: "Hệ thống quản lý công việc và báo cáo hàng ngày đa phân cấp - Công ty Cổ phần Xuất nhập khẩu Hatico",
+  description: "Hệ thống quản lý công việc và báo cáo hàng ngày đa phân cấp - Công ty Cổ phần XNK Quốc tế Hatico",
 };
 
 export const viewport = {

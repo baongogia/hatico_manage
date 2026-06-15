@@ -100,7 +100,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   }
 
   // 2. Title Block (merge columns A to D, leaving Column E open for logo)
-  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
+  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO", {
     font: { bold: true, size: 11 },
     alignment: { vertical: "middle" },
   }, 4);
@@ -298,7 +298,7 @@ export async function downloadDailyAttendanceExcel(filename: string, options: Ex
   }
 
   // 2. Title Block (merge columns A to E, leaving Column F open for logo)
-  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XUẤT NHẬP KHẨU HATICO", {
+  const line1 = addMergedLine("CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO", {
     font: { bold: true, size: 11 },
     alignment: { vertical: "middle" },
   }, 5);
