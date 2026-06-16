@@ -86,7 +86,11 @@ export function splitReportItems(items: ReportDataItem[] = []) {
     } else if (isMarketingEventEntry(item)) {
       marketingEvents.push(item);
     } else {
-      tasks.push(item);
+      const taskItem = { ...item } as TaskItem;
+      if (taskItem.title) {
+        taskItem.title = taskItem.title.replace(/\s*\(Admin\s*đánh\s*dấu\)/gi, "").trim();
+      }
+      tasks.push(taskItem);
     }
   }
   return { calls, marketingPosts, marketingEvents, tasks };

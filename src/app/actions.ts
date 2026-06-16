@@ -1238,7 +1238,7 @@ export async function markStaffPresent(staffId: number, date: string) {
 
   return await saveDailyReport({
     date,
-    tasksData: [{ title: "Điểm danh (Admin đánh dấu)", progress: "", status: "completed" }],
+    tasksData: [{ title: "Điểm danh", progress: "", status: "completed" }],
     status: "submitted",
     userId: targetUserId,
   });
