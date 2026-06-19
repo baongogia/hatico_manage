@@ -116,9 +116,29 @@ export function AdminAttendancePanel({
       setReasonModalOpen(true);
     } else {
       setTogglingCell({ staffId: row.id, dateStr: selectedDate });
+      
+      const originalDailyData = dailyData;
+      const now = new Date();
+      const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
+
+      // Optimistically mark present
+      setDailyData((prev) => ({
+        ...prev,
+        staff: prev.staff.map((s) =>
+          s.id === row.id
+            ? { ...s, hasReport: true, absence_reason: undefined, check_in_time: checkInTimeStr }
+            : s
+        ),
+      }));
+
       try {
         const res = await markStaffPresent(row.id, selectedDate);
         if ("error" in res) {
+          setDailyData(originalDailyData);
           window.alert(res.error);
         } else {
           const updatedDaily = await getAdminDashboardData(selectedDate);
@@ -128,6 +148,7 @@ export function AdminAttendancePanel({
           }
         }
       } catch {
+        setDailyData(originalDailyData);
         window.alert("Có lỗi xảy ra, vui lòng thử lại.");
       } finally {
         setTogglingCell(null);
@@ -145,9 +166,28 @@ export function AdminAttendancePanel({
   const handleSaveInlineReason = async (staffId: number) => {
     setEditingStaffId(null);
     setTogglingCell({ staffId, dateStr: selectedDate });
+
+    const originalDailyData = dailyData;
+    
+    // Optimistically update dailyData
+    setDailyData((prev) => ({
+      ...prev,
+      staff: prev.staff.map((s) =>
+        s.id === staffId
+          ? {
+              ...s,
+              hasReport: false,
+              absence_reason: editingReasonText.trim() || undefined,
+              check_in_time: undefined,
+            }
+          : s
+      ),
+    }));
+
     try {
       const res = await markStaffAbsent(staffId, selectedDate, editingReasonText);
       if ("error" in res) {
+        setDailyData(originalDailyData);
         window.alert(res.error);
       } else {
         const updatedDaily = await getAdminDashboardData(selectedDate);
@@ -157,6 +197,7 @@ export function AdminAttendancePanel({
         }
       }
     } catch {
+      setDailyData(originalDailyData);
       window.alert("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setTogglingCell(null);
@@ -186,16 +227,82 @@ export function AdminAttendancePanel({
     setReasonModalOpen(false);
     setTogglingCell({ staffId, dateStr });
 
+    const originalDailyData = dailyData;
+    const originalMonthlyData = monthlyData;
+
+    const now = new Date();
+    const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    // Optimistically update dailyData
+    setDailyData((prev) => ({
+      ...prev,
+      staff: prev.staff.map((s) =>
+        s.id === staffId
+          ? currentHasReport
+            ? { ...s, hasReport: true, absence_reason: undefined, check_in_time: checkInTimeStr }
+            : { ...s, hasReport: false, absence_reason: absenceReasonInput.trim() || undefined, check_in_time: undefined }
+          : s
+      ),
+    }));
+
+    // Optimistically update monthlyData if loaded
+    if (monthlyData) {
+      setMonthlyData((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          staff: prev.staff.map((s) => {
+            if (s.id === staffId) {
+              const currentMap = { ...s.attendanceMap };
+              const originalAtt = currentMap[dateStr];
+              const wasPresent = !!originalAtt?.hasReport;
+              
+              currentMap[dateStr] = {
+                hasReport: currentHasReport,
+                checkInTime: currentHasReport ? checkInTimeStr : undefined,
+                reportId: originalAtt?.reportId,
+                absenceReason: !currentHasReport && absenceReasonInput.trim() ? absenceReasonInput.trim() : undefined,
+              };
+
+              let newPresentCount = s.presentCount;
+              if (wasPresent && !currentHasReport) {
+                newPresentCount = Math.max(0, newPresentCount - 1);
+              } else if (!wasPresent && currentHasReport) {
+                newPresentCount++;
+              }
+
+              return {
+                ...s,
+                attendanceMap: currentMap,
+                presentCount: newPresentCount,
+              };
+            }
+            return s;
+          }),
+        };
+      });
+    }
+
     try {
       if (currentHasReport) {
         const res = await markStaffPresent(staffId, dateStr);
         if ("error" in res) {
+          setDailyData(originalDailyData);
+          setMonthlyData(originalMonthlyData);
           window.alert(res.error);
+          return;
         }
       } else {
         const res = await markStaffAbsent(staffId, dateStr, absenceReasonInput);
         if ("error" in res) {
+          setDailyData(originalDailyData);
+          setMonthlyData(originalMonthlyData);
           window.alert(res.error);
+          return;
         }
       }
 
@@ -213,6 +320,8 @@ export function AdminAttendancePanel({
         onDataUpdate?.(updatedDaily);
       }
     } catch {
+      setDailyData(originalDailyData);
+      setMonthlyData(originalMonthlyData);
       window.alert("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setTogglingCell(null);

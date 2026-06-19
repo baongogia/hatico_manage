@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   type TaskItem,
@@ -793,6 +794,7 @@ export async function saveDailyReport(params: {
       console.error("Error updating report:", error);
       return { error: error.message };
     }
+    revalidatePath("/dashboard");
     return { success: true, report: data };
   } else {
     // Insert new report
@@ -814,6 +816,7 @@ export async function saveDailyReport(params: {
       console.error("Error inserting report:", error);
       return { error: error.message };
     }
+    revalidatePath("/dashboard");
     return { success: true, report: data };
   }
 }
@@ -1282,6 +1285,7 @@ export async function deleteDailyReport(staffId: number, date: string) {
     return { error: error.message };
   }
 
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
