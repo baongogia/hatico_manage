@@ -579,14 +579,20 @@ export function AdminSummaryPanel({
                   {selectedStaff.hasReport ? (
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedStaff.tasks.map((t, i) => (
-                          <span
-                            key={i}
-                            className="bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                          >
-                            {t}
+                        {selectedStaff.tasks && selectedStaff.tasks.length > 0 ? (
+                          selectedStaff.tasks.map((t, i) => (
+                            <span
+                              key={i}
+                              className="bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                            >
+                              {t}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-500 text-xs italic px-1">
+                            (Chưa có nội dung báo cáo)
                           </span>
-                        ))}
+                        )}
                       </div>
                       <div className="pt-3 border-t border-slate-100 flex gap-2">
                         <button
@@ -599,8 +605,10 @@ export function AdminSummaryPanel({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-slate-400 text-sm italic py-4 text-center">
-                        Chưa nộp báo cáo ngày này
+                      <p className="text-slate-500 text-sm font-semibold py-4 text-center">
+                        {selectedStaff.absence_reason
+                          ? `Nghỉ phép: ${selectedStaff.absence_reason}`
+                          : "Chưa nộp báo cáo ngày này"}
                       </p>
                       <div className="pt-3 border-t border-slate-100 flex justify-center">
                         <button

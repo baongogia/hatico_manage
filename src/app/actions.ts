@@ -494,13 +494,16 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
   const staffRows: AdminStaffRow[] = (staff || []).map((s) => {
     const profileId = profileByName.get(s.full_name.trim().toLowerCase());
     const report = profileId ? reportByUserId.get(profileId) : undefined;
+    const rawTasks = (report?.tasks_data || []) as any[];
+    const rawAbsenceTask = rawTasks.find(
+      (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("nghỉ:")
+    );
+    const hasReport = !!report && !rawAbsenceTask;
+    const absence_reason = rawAbsenceTask ? rawAbsenceTask.title.substring(5).trim() : undefined;
+
     const tasks = splitReportItems(report?.tasks_data || []).tasks
       .map((t) => t.title)
       .filter(Boolean);
-
-    const absenceTask = tasks.find((t) => t.startsWith("Nghỉ:"));
-    const hasReport = tasks.length > 0 && !absenceTask;
-    const absence_reason = absenceTask ? absenceTask.substring(5).trim() : undefined;
 
     let check_in_time: string | undefined = undefined;
     if (report?.created_at && hasReport) {
@@ -521,7 +524,7 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
       branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
       hasReport,
       tasks: hasReport ? tasks : [],
-      report_id: tasks.length > 0 ? report?.id : undefined,
+      report_id: report?.id,
       check_in_time,
       absence_reason,
     };
@@ -1153,20 +1156,22 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
 
   const reportsGrouped = new Map<
     string,
-    Map<string, { id: string; created_at: string; hasWork: boolean; absenceReason?: string }>
+    Map<string, { id: string; created_at: string; hasReport: boolean; absenceReason?: string }>
   >();
   
   for (const r of reports || []) {
     const userMap = reportsGrouped.get(r.user_id) || new Map();
-    const tasks = splitReportItems(r.tasks_data || []).tasks.filter(t => t.title.trim());
-    const absenceTask = tasks.find(t => t.title.startsWith("Nghỉ:"));
-    const hasWork = tasks.length > 0 && !absenceTask;
+    const rawTasks = (r.tasks_data || []) as any[];
+    const absenceTask = rawTasks.find(
+      (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("nghỉ:")
+    );
+    const hasReport = !absenceTask;
     const absenceReason = absenceTask ? absenceTask.title.substring(5).trim() : undefined;
 
     userMap.set(r.report_date, {
       id: r.id,
       created_at: r.created_at,
-      hasWork,
+      hasReport,
       absenceReason,
     });
     reportsGrouped.set(r.user_id, userMap);
@@ -1183,7 +1188,7 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
       const dateStr = `${monthStr}-${String(day).padStart(2, "0")}`;
       const dayReport = userReports?.get(dateStr);
       
-      const hasReport = !!dayReport?.hasWork;
+      const hasReport = !!dayReport?.hasReport;
       const absenceReason = dayReport?.absenceReason;
       let checkInTime: string | undefined = undefined;
       if (dayReport?.created_at && hasReport) {
@@ -1241,7 +1246,7 @@ export async function markStaffPresent(staffId: number, date: string) {
 
   return await saveDailyReport({
     date,
-    tasksData: [{ title: "Điểm danh", progress: "", status: "completed" }],
+    tasksData: [],
     status: "submitted",
     userId: targetUserId,
   });

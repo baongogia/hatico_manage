@@ -90,7 +90,10 @@ export function splitReportItems(items: ReportDataItem[] = []) {
       if (taskItem.title) {
         taskItem.title = taskItem.title.replace(/\s*\(Admin\s*đánh\s*dấu\)/gi, "").trim();
       }
-      tasks.push(taskItem);
+      const titleLower = taskItem.title ? taskItem.title.toLowerCase() : "";
+      if (taskItem.title && titleLower !== "điểm danh" && !titleLower.startsWith("nghỉ:")) {
+        tasks.push(taskItem);
+      }
     }
   }
   return { calls, marketingPosts, marketingEvents, tasks };

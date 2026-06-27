@@ -49,7 +49,7 @@ export default async function ReportPage({ searchParams }: PageProps) {
     }
   } else {
     // Determine the target user profile for creating a new report
-    let actualTargetUserId = targetUserId;
+    let actualTargetUserId = targetUserId || sessionUser.id;
 
     if (staffIdParam) {
       const staffIdNum = parseInt(staffIdParam, 10);
@@ -66,7 +66,7 @@ export default async function ReportPage({ searchParams }: PageProps) {
       }
     }
 
-    if (actualTargetUserId && actualTargetUserId !== sessionUser.id) {
+    if (actualTargetUserId !== sessionUser.id) {
       if (sessionUser.role !== "admin") {
         redirect("/dashboard");
       }
@@ -75,14 +75,13 @@ export default async function ReportPage({ searchParams }: PageProps) {
         redirect("/dashboard");
       }
       targetUser = loadedProfile;
+    }
 
-      // If a report already exists for this target user on the selected date, edit it instead!
-      if (dateParam) {
-        const existingReport = await getReportByUserAndDate(actualTargetUserId, dateParam);
-        if (existingReport) {
-          redirect(`/dashboard/report?id=${existingReport.id}`);
-        }
-      }
+    // If a report already exists for the target user on the selected date (or today), edit it instead!
+    const targetDate = dateParam || new Date().toISOString().split("T")[0];
+    const existingReport = await getReportByUserAndDate(actualTargetUserId, targetDate);
+    if (existingReport) {
+      redirect(`/dashboard/report?id=${existingReport.id}`);
     }
   }
 
