@@ -68,12 +68,15 @@ export interface AdminStaffRow {
   department: string | null;
   branch_id: string | null;
   branch_name: string;
+  profile_id?: string;
   hasReport: boolean;
   tasks: string[];
   report_id?: string;
   check_in_time?: string;
   absence_reason?: string;
 }
+
+export type { StaffAttendanceUpdate } from "@/lib/admin-dashboard-utils";
 
 export interface AdminDashboardData {
   profile: Profile;
@@ -522,6 +525,7 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
       department: s.department,
       branch_id: s.branch_id,
       branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
+      profile_id: profileId,
       hasReport,
       tasks: hasReport ? tasks : [],
       report_id: report?.id,
@@ -718,18 +722,25 @@ export async function getReportDetail(reportId: string) {
   return report as DailyReport;
 }
 
-// 6. Save (create or update) a daily report
-export async function saveDailyReport(params: {
-  id?: string;
-  date: string;
-  tasksData: TaskItem[];
-  status: "draft" | "submitted";
-  userId?: string;
-}) {
-  const profile = await getSessionUser();
-  if (!profile) return { error: "Unauthorized" };
+function formatCheckInTimeFromIso(iso: string): string {
+  return new Date(iso).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+}
 
-  // Check permission: if saving report for someone else, user must be admin
+async function saveDailyReportCore(
+  profile: Profile,
+  params: {
+    id?: string;
+    date: string;
+    tasksData: TaskItem[];
+    status: "draft" | "submitted";
+    userId?: string;
+    skipRevalidate?: boolean;
+  },
+) {
   let targetUserId = profile.id;
   if (params.userId && params.userId !== profile.id) {
     if (profile.role !== "admin") {
@@ -741,7 +752,6 @@ export async function saveDailyReport(params: {
   const supabase = createServiceClient();
   const reportId = params.id || crypto.randomUUID();
 
-  // Check if a report already exists for this user and date (if no ID was passed)
   let existingId = params.id;
   let existingNonTasks: ReportDataItem[] = [];
   if (!existingId) {
@@ -754,7 +764,7 @@ export async function saveDailyReport(params: {
     if (existingReport) {
       existingId = existingReport.id;
       existingNonTasks = ((existingReport.tasks_data || []) as ReportDataItem[]).filter(
-        (item) => item.type && item.type !== "task"
+        (item) => item.type && item.type !== "task",
       );
     }
   } else {
@@ -768,7 +778,7 @@ export async function saveDailyReport(params: {
         return { error: "Unauthorized: You do not own this report." };
       }
       existingNonTasks = ((existingReport.tasks_data || []) as ReportDataItem[]).filter(
-        (item) => item.type && item.type !== "task"
+        (item) => item.type && item.type !== "task",
       );
     }
   }
@@ -781,13 +791,12 @@ export async function saveDailyReport(params: {
   const now = new Date().toISOString();
 
   if (existingId) {
-    // Update existing report
     const { data, error } = await supabase
       .from("daily_reports")
       .update({
         tasks_data: mergedTasksData,
         status: params.status,
-        updated_at: now
+        updated_at: now,
       })
       .eq("id", existingId)
       .select()
@@ -797,31 +806,48 @@ export async function saveDailyReport(params: {
       console.error("Error updating report:", error);
       return { error: error.message };
     }
-    revalidatePath("/dashboard");
-    return { success: true, report: data };
-  } else {
-    // Insert new report
-    const { data, error } = await supabase
-      .from("daily_reports")
-      .insert({
-        id: reportId,
-        user_id: targetUserId,
-        report_date: params.date,
-        tasks_data: mergedTasksData,
-        status: params.status,
-        created_at: now,
-        updated_at: now
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error inserting report:", error);
-      return { error: error.message };
+    if (!params.skipRevalidate) {
+      revalidatePath("/dashboard");
     }
-    revalidatePath("/dashboard");
-    return { success: true, report: data };
+    return { success: true as const, report: data as DailyReport };
   }
+
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .insert({
+      id: reportId,
+      user_id: targetUserId,
+      report_date: params.date,
+      tasks_data: mergedTasksData,
+      status: params.status,
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting report:", error);
+    return { error: error.message };
+  }
+  if (!params.skipRevalidate) {
+    revalidatePath("/dashboard");
+  }
+  return { success: true as const, report: data as DailyReport };
+}
+
+// 6. Save (create or update) a daily report
+export async function saveDailyReport(params: {
+  id?: string;
+  date: string;
+  tasksData: TaskItem[];
+  status: "draft" | "submitted";
+  userId?: string;
+  skipRevalidate?: boolean;
+}) {
+  const profile = await getSessionUser();
+  if (!profile) return { error: "Unauthorized" };
+  return saveDailyReportCore(profile, params);
 }
 
 // 7. Fetch a profile by ID (with department & branch)
@@ -1232,57 +1258,102 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
   } as AdminMonthlyAttendanceData;
 }
 
-export async function markStaffPresent(staffId: number, date: string) {
+export async function markStaffPresent(
+  staffId: number,
+  date: string,
+  profileId?: string,
+) {
   const profile = await getSessionUser();
   if (!profile || profile.role !== "admin") {
     return { error: "Unauthorized" };
   }
 
-  const provisionResult = await getOrCreateProfileForStaff(staffId);
-  if ("error" in provisionResult || !provisionResult.profileId) {
-    return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+  let targetUserId = profileId;
+  if (!targetUserId) {
+    const provisionResult = await getOrCreateProfileForStaff(staffId);
+    if ("error" in provisionResult || !provisionResult.profileId) {
+      return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+    }
+    targetUserId = provisionResult.profileId;
   }
-  const targetUserId = provisionResult.profileId;
 
-  return await saveDailyReport({
+  const result = await saveDailyReportCore(profile, {
     date,
     tasksData: [],
     status: "submitted",
     userId: targetUserId,
+    skipRevalidate: true,
   });
+
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  return {
+    success: true as const,
+    staffUpdate: {
+      staffId,
+      hasReport: true,
+      tasks: [] as string[],
+      report_id: result.report.id,
+      check_in_time: formatCheckInTimeFromIso(result.report.created_at),
+      absence_reason: undefined,
+      profile_id: targetUserId,
+    },
+  };
 }
 
-export async function deleteDailyReport(staffId: number, date: string) {
+export async function deleteDailyReport(
+  staffId: number,
+  date: string,
+  profileId?: string,
+) {
   const profile = await getSessionUser();
   if (!profile || profile.role !== "admin") {
     return { error: "Unauthorized" };
   }
 
   const supabase = createServiceClient();
-  const { data: staff } = await supabase
-    .from("staff_staging")
-    .select("full_name")
-    .eq("id", staffId)
-    .single();
+  let userProfileId = profileId;
 
-  if (!staff) {
-    return { error: "Không tìm thấy nhân viên" };
-  }
+  if (!userProfileId) {
+    const { data: staff } = await supabase
+      .from("staff_staging")
+      .select("full_name")
+      .eq("id", staffId)
+      .single();
 
-  const { data: userProfile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("full_name", staff.full_name)
-    .maybeSingle();
+    if (!staff) {
+      return { error: "Không tìm thấy nhân viên" };
+    }
 
-  if (!userProfile) {
-    return { success: true };
+    const { data: userProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("full_name", staff.full_name)
+      .maybeSingle();
+
+    if (!userProfile) {
+      return {
+        success: true as const,
+        staffUpdate: {
+          staffId,
+          hasReport: false,
+          tasks: [] as string[],
+          report_id: undefined,
+          check_in_time: undefined,
+          absence_reason: undefined,
+          profile_id: undefined,
+        },
+      };
+    }
+    userProfileId = userProfile.id;
   }
 
   const { error } = await supabase
     .from("daily_reports")
     .delete()
-    .eq("user_id", userProfile.id)
+    .eq("user_id", userProfileId)
     .eq("report_date", date);
 
   if (error) {
@@ -1290,32 +1361,69 @@ export async function deleteDailyReport(staffId: number, date: string) {
     return { error: error.message };
   }
 
-  revalidatePath("/dashboard");
-  return { success: true };
+  return {
+    success: true as const,
+    staffUpdate: {
+      staffId,
+      hasReport: false,
+      tasks: [] as string[],
+      report_id: undefined,
+      check_in_time: undefined,
+      absence_reason: undefined,
+      profile_id: userProfileId,
+    },
+  };
 }
 
-export async function markStaffAbsent(staffId: number, date: string, reason?: string) {
+export async function markStaffAbsent(
+  staffId: number,
+  date: string,
+  reason?: string,
+  profileId?: string,
+) {
   const profile = await getSessionUser();
   if (!profile || profile.role !== "admin") {
     return { error: "Unauthorized" };
   }
 
   if (!reason || reason.trim() === "") {
-    return await deleteDailyReport(staffId, date);
+    return deleteDailyReport(staffId, date, profileId);
   }
 
-  const provisionResult = await getOrCreateProfileForStaff(staffId);
-  if ("error" in provisionResult || !provisionResult.profileId) {
-    return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+  let targetUserId = profileId;
+  if (!targetUserId) {
+    const provisionResult = await getOrCreateProfileForStaff(staffId);
+    if ("error" in provisionResult || !provisionResult.profileId) {
+      return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+    }
+    targetUserId = provisionResult.profileId;
   }
-  const targetUserId = provisionResult.profileId;
 
-  return await saveDailyReport({
+  const trimmedReason = reason.trim();
+  const result = await saveDailyReportCore(profile, {
     date,
-    tasksData: [{ title: `Nghỉ: ${reason.trim()}`, progress: "", status: "completed" }],
+    tasksData: [{ title: `Nghỉ: ${trimmedReason}`, progress: "", status: "completed" }],
     status: "submitted",
     userId: targetUserId,
+    skipRevalidate: true,
   });
+
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  return {
+    success: true as const,
+    staffUpdate: {
+      staffId,
+      hasReport: false,
+      tasks: [] as string[],
+      report_id: result.report.id,
+      check_in_time: undefined,
+      absence_reason: trimmedReason,
+      profile_id: targetUserId,
+    },
+  };
 }
 
 function extractMarketingPostRows(reports: DailyReport[], period: CallReportPeriod = "all"): MarketingPostRow[] {

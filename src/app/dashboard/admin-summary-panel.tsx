@@ -25,6 +25,7 @@ import {
   getOrCreateProfileForStaff,
   DailyReport,
 } from "../actions";
+import { applyStaffAttendanceUpdate } from "@/lib/admin-dashboard-utils";
 import { splitReportItems, TaskItem } from "@/lib/report-data";
 import { downloadAdminReportExcel } from "@/lib/admin-report-export";
 import { AdminExcelPreviewModal } from "./admin-excel-preview-modal";
@@ -140,10 +141,11 @@ export function AdminSummaryPanel({
     setModalError("");
 
     try {
-      // 1. Get or create profile for target staff
       let targetUserId = "";
       if (modalInitialReport) {
         targetUserId = modalInitialReport.user_id;
+      } else if (modalTargetStaff.profile_id) {
+        targetUserId = modalTargetStaff.profile_id;
       } else {
         const provisionResult = await getOrCreateProfileForStaff(modalTargetStaff.id);
         if ("error" in provisionResult || !provisionResult.profileId) {
@@ -152,30 +154,44 @@ export function AdminSummaryPanel({
         targetUserId = provisionResult.profileId;
       }
 
-      // 2. Save report
       const res = await saveDailyReport({
         id: modalInitialReport?.id,
         date: selectedDate,
         tasksData: validTasks,
         status: "submitted",
         userId: targetUserId,
+        skipRevalidate: true,
       });
 
-      if (res.error) {
+      if ("error" in res) {
         throw new Error(res.error);
       }
 
-      // 3. Reload admin dashboard data for selectedDate so it refreshes the UI!
-      const updatedData = await getAdminDashboardData(selectedDate);
-      if (!("error" in updatedData)) {
-        setData(updatedData);
-        onDataUpdate?.(updatedData);
-
-        const newSelectedStaff = updatedData.staff.find((s) => s.id === modalTargetStaff.id);
+      const taskTitles = validTasks.map((t) => t.title);
+      const report = res.report;
+      setData((prev) => {
+        const next = applyStaffAttendanceUpdate(prev, {
+          staffId: modalTargetStaff.id,
+          hasReport: true,
+          tasks: taskTitles,
+          report_id: report?.id,
+          check_in_time: report?.created_at
+            ? new Date(report.created_at).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Ho_Chi_Minh",
+              })
+            : undefined,
+          absence_reason: undefined,
+          profile_id: targetUserId,
+        });
+        onDataUpdate?.(next);
+        const newSelectedStaff = next.staff.find((s) => s.id === modalTargetStaff.id);
         if (newSelectedStaff) {
           setSelectedStaff(newSelectedStaff);
         }
-      }
+        return next;
+      });
 
       setReportModalOpen(false);
     } catch (err) {

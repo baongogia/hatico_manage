@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import {
   getAdminDashboardData,
   getAdminMonthlyAttendance,
@@ -10,7 +10,13 @@ import {
   MonthlyAttendanceStaffRow,
   markStaffPresent,
   markStaffAbsent,
+  StaffAttendanceUpdate,
 } from "../actions";
+import {
+  applyMonthlyAttendanceUpdate,
+  applyStaffAttendanceUpdate,
+  attendanceCellKey,
+} from "@/lib/admin-dashboard-utils";
 import { downloadAdminAttendanceExcel, downloadDailyAttendanceExcel } from "@/lib/attendance-export";
 import DatePickerModal, { formatDateButtonLabel } from "./date-picker-modal";
 import AdminSelect, { adminControlClass } from "./admin-select";
@@ -40,8 +46,43 @@ export function AdminAttendancePanel({
   const [loadingMonthly, startLoadingMonthly] = useTransition();
   const [errorMonthly, setErrorMonthly] = useState("");
 
-  // Toggling state (for cell loadings)
-  const [togglingCell, setTogglingCell] = useState<{ staffId: number; dateStr: string } | null>(null);
+  // Toggling state (supports parallel updates)
+  const [togglingCells, setTogglingCells] = useState<Set<string>>(() => new Set());
+
+  const addToggling = useCallback((staffId: number, dateStr: string) => {
+    const key = attendanceCellKey(staffId, dateStr);
+    setTogglingCells((prev) => new Set(prev).add(key));
+  }, []);
+
+  const removeToggling = useCallback((staffId: number, dateStr: string) => {
+    const key = attendanceCellKey(staffId, dateStr);
+    setTogglingCells((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
+  const isCellToggling = useCallback(
+    (staffId: number, dateStr: string) => togglingCells.has(attendanceCellKey(staffId, dateStr)),
+    [togglingCells],
+  );
+
+  const commitStaffUpdate = useCallback(
+    (update: StaffAttendanceUpdate, dateStr: string) => {
+      if (dateStr === selectedDate) {
+        setDailyData((prev) => {
+          const next = applyStaffAttendanceUpdate(prev, update);
+          onDataUpdate?.(next);
+          return next;
+        });
+      }
+      setMonthlyData((prev) =>
+        prev ? applyMonthlyAttendanceUpdate(prev, update, dateStr) : prev,
+      );
+    },
+    [selectedDate, onDataUpdate],
+  );
 
   // Inline editing of reasons
   const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
@@ -115,8 +156,8 @@ export function AdminAttendancePanel({
       });
       setReasonModalOpen(true);
     } else {
-      setTogglingCell({ staffId: row.id, dateStr: selectedDate });
-      
+      addToggling(row.id, selectedDate);
+
       const originalDailyData = dailyData;
       const now = new Date();
       const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
@@ -125,7 +166,6 @@ export function AdminAttendancePanel({
         timeZone: "Asia/Ho_Chi_Minh",
       });
 
-      // Optimistically mark present
       setDailyData((prev) => ({
         ...prev,
         staff: prev.staff.map((s) =>
@@ -136,22 +176,18 @@ export function AdminAttendancePanel({
       }));
 
       try {
-        const res = await markStaffPresent(row.id, selectedDate);
+        const res = await markStaffPresent(row.id, selectedDate, row.profile_id);
         if ("error" in res) {
           setDailyData(originalDailyData);
           window.alert(res.error);
-        } else {
-          const updatedDaily = await getAdminDashboardData(selectedDate);
-          if (!("error" in updatedDaily)) {
-            setDailyData(updatedDaily);
-            onDataUpdate?.(updatedDaily);
-          }
+        } else if (res.staffUpdate) {
+          commitStaffUpdate(res.staffUpdate, selectedDate);
         }
       } catch {
         setDailyData(originalDailyData);
         window.alert("Có lỗi xảy ra, vui lòng thử lại.");
       } finally {
-        setTogglingCell(null);
+        removeToggling(row.id, selectedDate);
       }
     }
   };
@@ -165,11 +201,12 @@ export function AdminAttendancePanel({
 
   const handleSaveInlineReason = async (staffId: number) => {
     setEditingStaffId(null);
-    setTogglingCell({ staffId, dateStr: selectedDate });
+    addToggling(staffId, selectedDate);
 
     const originalDailyData = dailyData;
-    
-    // Optimistically update dailyData
+    const row = dailyData.staff.find((s) => s.id === staffId);
+    const trimmedReason = editingReasonText.trim();
+
     setDailyData((prev) => ({
       ...prev,
       staff: prev.staff.map((s) =>
@@ -177,7 +214,7 @@ export function AdminAttendancePanel({
           ? {
               ...s,
               hasReport: false,
-              absence_reason: editingReasonText.trim() || undefined,
+              absence_reason: trimmedReason || undefined,
               check_in_time: undefined,
             }
           : s
@@ -185,22 +222,18 @@ export function AdminAttendancePanel({
     }));
 
     try {
-      const res = await markStaffAbsent(staffId, selectedDate, editingReasonText);
+      const res = await markStaffAbsent(staffId, selectedDate, editingReasonText, row?.profile_id);
       if ("error" in res) {
         setDailyData(originalDailyData);
         window.alert(res.error);
-      } else {
-        const updatedDaily = await getAdminDashboardData(selectedDate);
-        if (!("error" in updatedDaily)) {
-          setDailyData(updatedDaily);
-          onDataUpdate?.(updatedDaily);
-        }
+      } else if (res.staffUpdate) {
+        commitStaffUpdate(res.staffUpdate, selectedDate);
       }
     } catch {
       setDailyData(originalDailyData);
       window.alert("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
-      setTogglingCell(null);
+      removeToggling(staffId, selectedDate);
     }
   };
 
@@ -224,8 +257,9 @@ export function AdminAttendancePanel({
   const handleSaveAttendanceModal = async () => {
     if (!reasonModalData) return;
     const { staffId, dateStr, currentHasReport } = reasonModalData;
+    const staffRow = dailyData.staff.find((s) => s.id === staffId);
     setReasonModalOpen(false);
-    setTogglingCell({ staffId, dateStr });
+    addToggling(staffId, dateStr);
 
     const originalDailyData = dailyData;
     const originalMonthlyData = monthlyData;
@@ -237,94 +271,54 @@ export function AdminAttendancePanel({
       timeZone: "Asia/Ho_Chi_Minh",
     });
 
-    // Optimistically update dailyData
-    setDailyData((prev) => ({
-      ...prev,
-      staff: prev.staff.map((s) =>
-        s.id === staffId
-          ? currentHasReport
-            ? { ...s, hasReport: true, absence_reason: undefined, check_in_time: checkInTimeStr }
-            : { ...s, hasReport: false, absence_reason: absenceReasonInput.trim() || undefined, check_in_time: undefined }
-          : s
-      ),
-    }));
-
-    // Optimistically update monthlyData if loaded
-    if (monthlyData) {
-      setMonthlyData((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          staff: prev.staff.map((s) => {
-            if (s.id === staffId) {
-              const currentMap = { ...s.attendanceMap };
-              const originalAtt = currentMap[dateStr];
-              const wasPresent = !!originalAtt?.hasReport;
-              
-              currentMap[dateStr] = {
-                hasReport: currentHasReport,
-                checkInTime: currentHasReport ? checkInTimeStr : undefined,
-                reportId: originalAtt?.reportId,
-                absenceReason: !currentHasReport && absenceReasonInput.trim() ? absenceReasonInput.trim() : undefined,
-              };
-
-              let newPresentCount = s.presentCount;
-              if (wasPresent && !currentHasReport) {
-                newPresentCount = Math.max(0, newPresentCount - 1);
-              } else if (!wasPresent && currentHasReport) {
-                newPresentCount++;
-              }
-
-              return {
-                ...s,
-                attendanceMap: currentMap,
-                presentCount: newPresentCount,
-              };
-            }
-            return s;
-          }),
+    const optimisticUpdate: StaffAttendanceUpdate = currentHasReport
+      ? {
+          staffId,
+          hasReport: true,
+          tasks: [],
+          check_in_time: checkInTimeStr,
+          absence_reason: undefined,
+          profile_id: staffRow?.profile_id,
+        }
+      : {
+          staffId,
+          hasReport: false,
+          tasks: [],
+          check_in_time: undefined,
+          absence_reason: absenceReasonInput.trim() || undefined,
+          profile_id: staffRow?.profile_id,
         };
-      });
+
+    if (dateStr === selectedDate) {
+      setDailyData((prev) => applyStaffAttendanceUpdate(prev, optimisticUpdate));
+    }
+    if (monthlyData) {
+      setMonthlyData((prev) =>
+        prev ? applyMonthlyAttendanceUpdate(prev, optimisticUpdate, dateStr) : prev,
+      );
     }
 
     try {
-      if (currentHasReport) {
-        const res = await markStaffPresent(staffId, dateStr);
-        if ("error" in res) {
-          setDailyData(originalDailyData);
-          setMonthlyData(originalMonthlyData);
-          window.alert(res.error);
-          return;
-        }
-      } else {
-        const res = await markStaffAbsent(staffId, dateStr, absenceReasonInput);
-        if ("error" in res) {
-          setDailyData(originalDailyData);
-          setMonthlyData(originalMonthlyData);
-          window.alert(res.error);
-          return;
-        }
+      const res = currentHasReport
+        ? await markStaffPresent(staffId, dateStr, staffRow?.profile_id)
+        : await markStaffAbsent(staffId, dateStr, absenceReasonInput, staffRow?.profile_id);
+
+      if ("error" in res) {
+        setDailyData(originalDailyData);
+        setMonthlyData(originalMonthlyData);
+        window.alert(res.error);
+        return;
       }
 
-      // Refresh current views
-      if (subTab === "monthly") {
-        const updatedMonthly = await getAdminMonthlyAttendance(selectedMonth);
-        if (!("error" in updatedMonthly)) {
-          setMonthlyData(updatedMonthly);
-        }
-      }
-      
-      const updatedDaily = await getAdminDashboardData(selectedDate);
-      if (!("error" in updatedDaily)) {
-        setDailyData(updatedDaily);
-        onDataUpdate?.(updatedDaily);
+      if (res.staffUpdate) {
+        commitStaffUpdate(res.staffUpdate, dateStr);
       }
     } catch {
       setDailyData(originalDailyData);
       setMonthlyData(originalMonthlyData);
       window.alert("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
-      setTogglingCell(null);
+      removeToggling(staffId, dateStr);
     }
   };
 
@@ -699,7 +693,7 @@ export function AdminAttendancePanel({
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {togglingCell?.staffId === row.id && togglingCell?.dateStr === selectedDate ? (
+                            {isCellToggling(row.id, selectedDate) ? (
                               <span className="inline-flex items-center justify-center">
                                 <svg className="animate-spin h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -815,12 +809,12 @@ export function AdminAttendancePanel({
                               const dateStr = `${selectedMonth}-${String(day).padStart(2, "0")}`;
                               const att = row.attendanceMap[dateStr];
                               const { isWeekend } = getDayOfWeekLabel(day);
-                              const isCellToggling = togglingCell?.staffId === row.id && togglingCell?.dateStr === dateStr;
+                              const isCellTogglingMonthly = isCellToggling(row.id, dateStr);
 
                               return (
                                 <td
                                   key={day}
-                                  onClick={() => !isCellToggling && handleMonthlyCellClick(row, dateStr, att)}
+                                  onClick={() => !isCellTogglingMonthly && handleMonthlyCellClick(row, dateStr, att)}
                                   title={
                                     att?.hasReport
                                       ? `${row.full_name} đi làm lúc ${att.checkInTime || "—"}. Click để chỉnh sửa.`
@@ -834,7 +828,7 @@ export function AdminAttendancePanel({
                                     !att?.hasReport && att?.absenceReason ? "bg-amber-50/70 hover:bg-amber-100/80" : ""
                                   }`}
                                 >
-                                  {isCellToggling ? (
+                                  {isCellTogglingMonthly ? (
                                     <span className="flex items-center justify-center w-full">
                                       <svg className="animate-spin h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

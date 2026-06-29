@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { glassPanel } from "@/lib/glass-styles";
@@ -28,6 +28,7 @@ export default function ReportForm({
   isAdmin,
 }: ReportFormProps) {
   const router = useRouter();
+  const [, startNavigate] = useTransition();
 
   const [reportDate] = useState(
     initialReport?.report_date || initialDate || new Date().toISOString().split("T")[0]
@@ -113,17 +114,20 @@ export default function ReportForm({
         tasksData: validTasks,
         status: "submitted",
         userId: user.id,
+        skipRevalidate: true,
       });
 
-      if (res.error) {
+      if ("error" in res) {
         throw new Error(res.error);
       }
 
-      if (isAdmin) {
-        router.replace(`/dashboard?view=summary&date=${reportDate}&notice=submitted`);
-      } else {
-        router.replace("/dashboard?notice=submitted");
-      }
+      const destination = isAdmin
+        ? `/dashboard?view=summary&date=${reportDate}&notice=submitted`
+        : "/dashboard?notice=submitted";
+
+      startNavigate(() => {
+        router.replace(destination);
+      });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Không thể lưu báo cáo, vui lòng thử lại.");
     } finally {
