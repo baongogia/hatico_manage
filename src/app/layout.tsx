@@ -16,7 +16,12 @@ export const metadata: Metadata = {
   title: "Hatico Manager - Quản lý Báo cáo Công việc",
   description: "Hệ thống quản lý công việc và báo cáo hàng ngày đa phân cấp - Công ty Cổ phần XNK Quốc tế Hatico",
   icons: {
-    icon: "/logo/manage_logo.png",
+    icon: [
+      { url: "/logo/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/logo/favicon-48.png", sizes: "48x48", type: "image/png" },
+    ],
+    apple: "/logo/favicon-192.png",
   },
 };
 
