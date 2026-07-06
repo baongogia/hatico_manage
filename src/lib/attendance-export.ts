@@ -165,7 +165,11 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
       const dateStr = `${month}-${String(d).padStart(2, "0")}`;
       const status = s.attendanceMap[dateStr];
       if (status?.hasReport) {
-        rowValues.push("x");
+        if (status?.isLate) {
+          rowValues.push("m");
+        } else {
+          rowValues.push("x");
+        }
       } else if (status?.absenceReason) {
         rowValues.push("p");
       } else {
@@ -194,6 +198,9 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
       if (cell.value === "x") {
         cell.font = { size: 10, bold: true, color: { argb: "FF385723" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PRESENT_FILL } };
+      } else if (cell.value === "m") {
+        cell.font = { size: 10, bold: true, color: { argb: "FF7F6000" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
       } else if (cell.value === "p") {
         cell.font = { size: 10, bold: true, color: { argb: "FFC65911" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ABSENT_REASON_FILL } };
@@ -204,7 +211,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   });
 
   sheet.addRow([]);
-  addMergedLine("Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo", {
+  addMergedLine("Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo", {
     font: { italic: true, size: 9, color: { argb: "FF475569" } },
     alignment: { horizontal: "left", vertical: "middle" }
   }, totalCols);
@@ -347,8 +354,12 @@ export async function downloadDailyAttendanceExcel(filename: string, options: Ex
 
   // Add Data Rows
   sortedStaff.forEach((s, idx) => {
-    let statusText = s.hasReport ? "Đi làm" : "Vắng";
-    if (!s.hasReport && s.absence_reason) {
+    let statusText = s.hasReport ? (s.isLate ? "Đi muộn" : "Đi làm") : "Vắng";
+    const hasSpecificReason = s.absence_reason &&
+      s.absence_reason !== "Vắng" &&
+      s.absence_reason !== "Vắng mặt" &&
+      s.absence_reason !== "Nghỉ";
+    if (!s.hasReport && hasSpecificReason) {
       statusText = `Vắng (Lý do: ${s.absence_reason})`;
     }
 
@@ -372,11 +383,15 @@ export async function downloadDailyAttendanceExcel(filename: string, options: Ex
     dataRow.getCell(5).alignment = { vertical: "middle", horizontal: "left" };
     dataRow.getCell(6).alignment = { vertical: "middle", horizontal: "center" };
 
-    if (s.hasReport) {
+    if (s.hasReport && !s.isLate) {
       dataRow.getCell(5).font = { size: 10, bold: true, color: { argb: "FF385723" } };
       dataRow.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: PRESENT_FILL } };
       dataRow.getCell(6).font = { size: 10, bold: true, color: { argb: PRIMARY } };
-    } else if (s.absence_reason) {
+    } else if (s.hasReport && s.isLate) {
+      dataRow.getCell(5).font = { size: 10, bold: true, color: { argb: "FF7F6000" } };
+      dataRow.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
+      dataRow.getCell(6).font = { size: 10, bold: true, color: { argb: PRIMARY } };
+    } else if (!s.hasReport && hasSpecificReason) {
       dataRow.getCell(5).font = { size: 10, bold: true, color: { argb: "FFC65911" } };
       dataRow.getCell(5).fill = { type: "pattern", pattern: "solid", fgColor: { argb: ABSENT_REASON_FILL } };
     } else {

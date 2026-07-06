@@ -91,7 +91,7 @@ export function splitReportItems(items: ReportDataItem[] = []) {
         taskItem.title = taskItem.title.replace(/\s*\(Admin\s*đánh\s*dấu\)/gi, "").trim();
       }
       const titleLower = taskItem.title ? taskItem.title.toLowerCase() : "";
-      if (taskItem.title && titleLower !== "điểm danh" && !titleLower.startsWith("nghỉ:")) {
+      if (taskItem.title && titleLower !== "điểm danh" && !titleLower.startsWith("nghỉ:") && !titleLower.startsWith("muộn:")) {
         tasks.push(taskItem);
       }
     }

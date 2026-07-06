@@ -31,11 +31,14 @@ export function DailyAttendancePreviewModal({
     return [...list].sort((a, b) => a.full_name.localeCompare(b.full_name, "vi"));
   }, [staff, branchFilter]);
 
-  const { reportedCount, missingCount } = useMemo(() => {
-    const present = filteredStaff.filter(s => s.hasReport).length;
+  const { reportedCount, lateCount, missingCount } = useMemo(() => {
+    const present = filteredStaff.filter(s => s.hasReport && !s.isLate).length;
+    const late = filteredStaff.filter(s => s.hasReport && s.isLate).length;
+    const absent = filteredStaff.filter(s => !s.hasReport).length;
     return {
       reportedCount: present,
-      missingCount: filteredStaff.length - present
+      lateCount: late,
+      missingCount: absent
     };
   }, [filteredStaff]);
 
@@ -106,7 +109,7 @@ export function DailyAttendancePreviewModal({
                 3
               </div>
               <div className="col-span-5 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
-                Tổng nhân sự: {filteredStaff.length} người · Đi làm: {reportedCount} · Vắng: {missingCount}
+                Tổng nhân sự: {filteredStaff.length} người · Đi làm: {reportedCount} · Đi muộn: {lateCount} · Vắng: {missingCount}
               </div>
 
               {/* Row 4: Spacer */}
@@ -136,8 +139,12 @@ export function DailyAttendancePreviewModal({
                 const isEven = idx % 2 === 1;
                 const rowBg = isEven ? "bg-[#f8fafc]" : "bg-white";
                 
-                let statusText = s.hasReport ? "Đi làm" : "Vắng";
-                if (!s.hasReport && s.absence_reason) {
+                let statusText = s.hasReport ? (s.isLate ? "Đi muộn" : "Đi làm") : "Vắng";
+                const hasSpecificReason = s.absence_reason &&
+                  s.absence_reason !== "Vắng" &&
+                  s.absence_reason !== "Vắng mặt" &&
+                  s.absence_reason !== "Nghỉ";
+                if (!s.hasReport && hasSpecificReason) {
                   statusText = `Vắng (Lý do: ${s.absence_reason})`;
                 }
 
@@ -159,10 +166,12 @@ export function DailyAttendancePreviewModal({
                       {s.position || "—"}
                     </div>
                     <div className={`${rowBg} border-r border-b border-slate-200 px-3 flex items-center py-1.5`}>
-                      {s.hasReport ? (
+                      {s.hasReport && !s.isLate ? (
                         <span className="text-[#385723] bg-[#e2f0d9] px-2 py-0.5 rounded font-bold text-[10px]">Đi làm</span>
-                      ) : s.absence_reason ? (
-                        <span className="text-[#c65911] bg-[#fce4d6] px-2 py-0.5 rounded font-bold text-[10px]">{statusText}</span>
+                      ) : s.hasReport && s.isLate ? (
+                        <span className="text-[#7f6000] bg-[#fff2cc] px-2 py-0.5 rounded font-bold text-[10px]">Đi muộn</span>
+                      ) : !s.hasReport && hasSpecificReason ? (
+                        <span className="text-[#c65911] bg-[#fce4d6] px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap">{statusText}</span>
                       ) : (
                         <span className="text-rose-500 font-medium">Vắng</span>
                       )}
@@ -385,8 +394,13 @@ export function MonthlyAttendancePreviewModal({
                       let cellText = "";
                       let cellStyleClass = "";
                       if (att?.hasReport) {
-                        cellText = "x";
-                        cellStyleClass = "text-[#385723] bg-[#e2f0d9]";
+                        if (att?.isLate) {
+                          cellText = "m";
+                          cellStyleClass = "text-[#7f6000] bg-[#fff2cc]";
+                        } else {
+                          cellText = "x";
+                          cellStyleClass = "text-[#385723] bg-[#e2f0d9]";
+                        }
                       } else if (att?.absenceReason) {
                         cellText = "p";
                         cellStyleClass = "text-[#c65911] bg-[#fce4d6]";
@@ -416,7 +430,7 @@ export function MonthlyAttendancePreviewModal({
                   {6 + filteredStaff.length}
                 </div>
                 <div className="px-3 text-slate-500 italic text-[9px] w-full flex items-center h-full">
-                  Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo
+                  Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo
                 </div>
               </div>
 

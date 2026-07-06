@@ -3,6 +3,7 @@ import type { AdminBranchStat, AdminDashboardData, AdminStaffRow } from "@/app/a
 export interface StaffAttendanceUpdate {
   staffId: number;
   hasReport: boolean;
+  isLate?: boolean;
   tasks: string[];
   report_id?: string;
   check_in_time?: string;
@@ -39,6 +40,7 @@ export function applyStaffAttendanceUpdate(
       ? {
           ...s,
           hasReport: update.hasReport,
+          isLate: update.isLate ?? false,
           tasks: update.tasks,
           report_id: update.report_id,
           check_in_time: update.check_in_time,
@@ -75,6 +77,7 @@ export function applyMonthlyAttendanceUpdate(
       const wasPresent = !!currentMap[dateStr]?.hasReport;
       currentMap[dateStr] = {
         hasReport: update.hasReport,
+        isLate: update.isLate ?? false,
         checkInTime: update.check_in_time,
         reportId: update.report_id,
         absenceReason: update.absence_reason,

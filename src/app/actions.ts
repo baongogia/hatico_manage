@@ -70,6 +70,7 @@ export interface AdminStaffRow {
   branch_name: string;
   profile_id?: string;
   hasReport: boolean;
+  isLate?: boolean;
   tasks: string[];
   report_id?: string;
   check_in_time?: string;
@@ -494,45 +495,50 @@ export async function getAdminDashboardData(selectedDate?: string, user?: Profil
     (reports || []).map((r) => [r.user_id, r as DailyReport])
   );
 
-  const staffRows: AdminStaffRow[] = (staff || []).map((s) => {
-    const profileId = profileByName.get(s.full_name.trim().toLowerCase());
-    const report = profileId ? reportByUserId.get(profileId) : undefined;
-    const rawTasks = (report?.tasks_data || []) as any[];
-    const rawAbsenceTask = rawTasks.find(
-      (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("nghỉ:")
-    );
-    const hasReport = !!report && !rawAbsenceTask;
-    const absence_reason = rawAbsenceTask ? rawAbsenceTask.title.substring(5).trim() : undefined;
+    const staffRows: AdminStaffRow[] = (staff || []).map((s) => {
+      const profileId = profileByName.get(s.full_name.trim().toLowerCase());
+      const report = profileId ? reportByUserId.get(profileId) : undefined;
+      const rawTasks = (report?.tasks_data || []) as any[];
+      const rawAbsenceTask = rawTasks.find(
+        (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("nghỉ:")
+      );
+      const rawLateTask = rawTasks.find(
+        (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("muộn:")
+      );
+      const hasReport = !!report && !rawAbsenceTask;
+      const isLate = !!rawLateTask;
+      const absence_reason = rawAbsenceTask ? rawAbsenceTask.title.substring(5).trim() : undefined;
 
-    const tasks = splitReportItems(report?.tasks_data || []).tasks
-      .map((t) => t.title)
-      .filter(Boolean);
+      const tasks = splitReportItems(report?.tasks_data || []).tasks
+        .map((t) => t.title)
+        .filter(Boolean);
 
-    let check_in_time: string | undefined = undefined;
-    if (report?.created_at && hasReport) {
-      const d = new Date(report.created_at);
-      check_in_time = d.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Ho_Chi_Minh",
-      });
-    }
+      let check_in_time: string | undefined = undefined;
+      if (report?.created_at && hasReport) {
+        const d = new Date(report.created_at);
+        check_in_time = d.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Ho_Chi_Minh",
+        });
+      }
 
-    return {
-      id: s.id,
-      full_name: s.full_name,
-      position: s.position,
-      department: s.department,
-      branch_id: s.branch_id,
-      branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
-      profile_id: profileId,
-      hasReport,
-      tasks: hasReport ? tasks : [],
-      report_id: report?.id,
-      check_in_time,
-      absence_reason,
-    };
-  });
+      return {
+        id: s.id,
+        full_name: s.full_name,
+        position: s.position,
+        department: s.department,
+        branch_id: s.branch_id,
+        branch_name: s.branch_id ? branchMap.get(s.branch_id) || "—" : "—",
+        profile_id: profileId,
+        hasReport,
+        isLate,
+        tasks: hasReport ? tasks : [],
+        report_id: report?.id,
+        check_in_time,
+        absence_reason,
+      };
+    });
 
   const branchStatsMap = new Map<string, AdminBranchStat>();
   for (const row of staffRows) {
@@ -1137,7 +1143,7 @@ export interface MonthlyAttendanceStaffRow {
   department: string | null;
   branch_id: string | null;
   branch_name: string;
-  attendanceMap: Record<string, { hasReport: boolean; checkInTime?: string; reportId?: string; absenceReason?: string }>;
+  attendanceMap: Record<string, { hasReport: boolean; isLate?: boolean; checkInTime?: string; reportId?: string; absenceReason?: string }>;
   presentCount: number;
 }
 
@@ -1182,7 +1188,7 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
 
   const reportsGrouped = new Map<
     string,
-    Map<string, { id: string; created_at: string; hasReport: boolean; absenceReason?: string }>
+    Map<string, { id: string; created_at: string; hasReport: boolean; isLate?: boolean; absenceReason?: string }>
   >();
   
   for (const r of reports || []) {
@@ -1191,13 +1197,18 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
     const absenceTask = rawTasks.find(
       (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("nghỉ:")
     );
+    const lateTask = rawTasks.find(
+      (t) => t.title && typeof t.title === "string" && t.title.toLowerCase().startsWith("muộn:")
+    );
     const hasReport = !absenceTask;
+    const isLate = !!lateTask;
     const absenceReason = absenceTask ? absenceTask.title.substring(5).trim() : undefined;
 
     userMap.set(r.report_date, {
       id: r.id,
       created_at: r.created_at,
       hasReport,
+      isLate,
       absenceReason,
     });
     reportsGrouped.set(r.user_id, userMap);
@@ -1215,6 +1226,7 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
       const dayReport = userReports?.get(dateStr);
       
       const hasReport = !!dayReport?.hasReport;
+      const isLate = !!dayReport?.isLate;
       const absenceReason = dayReport?.absenceReason;
       let checkInTime: string | undefined = undefined;
       if (dayReport?.created_at && hasReport) {
@@ -1228,6 +1240,7 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
 
       attendanceMap[dateStr] = {
         hasReport,
+        isLate,
         checkInTime,
         reportId: dayReport?.id,
         absenceReason,
@@ -1421,6 +1434,54 @@ export async function markStaffAbsent(
       report_id: result.report.id,
       check_in_time: undefined,
       absence_reason: trimmedReason,
+      profile_id: targetUserId,
+    },
+  };
+}
+
+export async function markStaffLate(
+  staffId: number,
+  date: string,
+  reason?: string,
+  profileId?: string,
+) {
+  const profile = await getSessionUser();
+  if (!profile || profile.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  let targetUserId = profileId;
+  if (!targetUserId) {
+    const provisionResult = await getOrCreateProfileForStaff(staffId);
+    if ("error" in provisionResult || !provisionResult.profileId) {
+      return { error: provisionResult.error || "Không thể khởi tạo hồ sơ cho nhân viên" };
+    }
+    targetUserId = provisionResult.profileId;
+  }
+
+  const trimmedReason = reason?.trim() || "Đi muộn";
+  const result = await saveDailyReportCore(profile, {
+    date,
+    tasksData: [{ title: `Muộn: ${trimmedReason}`, progress: "", status: "completed" }],
+    status: "submitted",
+    userId: targetUserId,
+    skipRevalidate: true,
+  });
+
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  return {
+    success: true as const,
+    staffUpdate: {
+      staffId,
+      hasReport: true,
+      isLate: true,
+      tasks: [] as string[],
+      report_id: result.report.id,
+      check_in_time: formatCheckInTimeFromIso(result.report.created_at),
+      absence_reason: undefined,
       profile_id: targetUserId,
     },
   };

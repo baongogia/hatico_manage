@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   getAdminDashboardData,
   getAdminMonthlyAttendance,
@@ -10,6 +10,7 @@ import {
   MonthlyAttendanceStaffRow,
   markStaffPresent,
   markStaffAbsent,
+  markStaffLate,
   StaffAttendanceUpdate,
 } from "../actions";
 import {
@@ -36,6 +37,10 @@ export function AdminAttendancePanel({
   const [selectedDate, setSelectedDate] = useState(initialData.date);
 
   const [subTab, setSubTab] = useState<"daily" | "monthly">("daily");
+
+  const todayStr = useMemo(() => {
+    return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+  }, []);
 
   // Monthly Attendance State
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -71,18 +76,23 @@ export function AdminAttendancePanel({
   const commitStaffUpdate = useCallback(
     (update: StaffAttendanceUpdate, dateStr: string) => {
       if (dateStr === selectedDate) {
-        setDailyData((prev) => {
-          const next = applyStaffAttendanceUpdate(prev, update);
-          onDataUpdate?.(next);
-          return next;
-        });
+        setDailyData((prev) => applyStaffAttendanceUpdate(prev, update));
       }
       setMonthlyData((prev) =>
         prev ? applyMonthlyAttendanceUpdate(prev, update, dateStr) : prev,
       );
     },
-    [selectedDate, onDataUpdate],
+    [selectedDate],
   );
+
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    onDataUpdate?.(dailyData);
+  }, [dailyData, onDataUpdate]);
 
   // Inline editing of reasons
   const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
@@ -94,7 +104,7 @@ export function AdminAttendancePanel({
     staffId: number;
     staffName: string;
     dateStr: string;
-    currentHasReport: boolean;
+    currentStatus: "present" | "late" | "absent";
     currentReason?: string;
   } | null>(null);
   const [absenceReasonInput, setAbsenceReasonInput] = useState("");
@@ -104,7 +114,12 @@ export function AdminAttendancePanel({
   const [showMonthlyPreview, setShowMonthlyPreview] = useState(false);
 
   // Filters and Search
-  const [branchFilter, setBranchFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState(() => {
+    const hanoiBranch = initialData.branchStats.find(b => 
+      b.branchName.toLowerCase().includes("hà nội")
+    );
+    return hanoiBranch ? hanoiBranch.branchId : "all";
+  });
   const [statusFilter, setStatusFilter] = useState("all"); // all, present, absent
   const [searchQuery, setSearchQuery] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -138,58 +153,91 @@ export function AdminAttendancePanel({
       const result = await getAdminDashboardData(newDate);
       if (!("error" in result)) {
         setDailyData(result);
-        onDataUpdate?.(result);
       }
     });
   };
 
-  // Toggle present/absent click handlers
-  const handleDailyToggleClick = async (row: AdminStaffRow, markAbsent: boolean) => {
-    if (markAbsent) {
-      setAbsenceReasonInput(row.absence_reason || "");
-      setReasonModalData({
-        staffId: row.id,
-        staffName: row.full_name,
-        dateStr: selectedDate,
-        currentHasReport: false,
-        currentReason: row.absence_reason,
-      });
-      setReasonModalOpen(true);
-    } else {
-      addToggling(row.id, selectedDate);
+  // Individual action click handlers
+  const handleMarkPresentClick = async (row: AdminStaffRow) => {
+    addToggling(row.id, selectedDate);
+    const originalDailyData = dailyData;
+    const now = new Date();
+    const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
 
-      const originalDailyData = dailyData;
-      const now = new Date();
-      const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Ho_Chi_Minh",
-      });
+    setDailyData((prev) => ({
+      ...prev,
+      staff: prev.staff.map((s) =>
+        s.id === row.id
+          ? { ...s, hasReport: true, isLate: false, absence_reason: undefined, check_in_time: checkInTimeStr }
+          : s
+      ),
+    }));
 
-      setDailyData((prev) => ({
-        ...prev,
-        staff: prev.staff.map((s) =>
-          s.id === row.id
-            ? { ...s, hasReport: true, absence_reason: undefined, check_in_time: checkInTimeStr }
-            : s
-        ),
-      }));
-
-      try {
-        const res = await markStaffPresent(row.id, selectedDate, row.profile_id);
-        if ("error" in res) {
-          setDailyData(originalDailyData);
-          window.alert(res.error);
-        } else if (res.staffUpdate) {
-          commitStaffUpdate(res.staffUpdate, selectedDate);
-        }
-      } catch {
+    try {
+      const res = await markStaffPresent(row.id, selectedDate, row.profile_id);
+      if ("error" in res) {
         setDailyData(originalDailyData);
-        window.alert("Có lỗi xảy ra, vui lòng thử lại.");
-      } finally {
-        removeToggling(row.id, selectedDate);
+        window.alert(res.error);
+      } else if (res.staffUpdate) {
+        commitStaffUpdate(res.staffUpdate, selectedDate);
       }
+    } catch {
+      setDailyData(originalDailyData);
+      window.alert("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      removeToggling(row.id, selectedDate);
     }
+  };
+
+  const handleMarkLateClick = async (row: AdminStaffRow) => {
+    addToggling(row.id, selectedDate);
+    const originalDailyData = dailyData;
+    const now = new Date();
+    const checkInTimeStr = now.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    setDailyData((prev) => ({
+      ...prev,
+      staff: prev.staff.map((s) =>
+        s.id === row.id
+          ? { ...s, hasReport: true, isLate: true, absence_reason: undefined, check_in_time: checkInTimeStr }
+          : s
+      ),
+    }));
+
+    try {
+      const res = await markStaffLate(row.id, selectedDate, undefined, row.profile_id);
+      if ("error" in res) {
+        setDailyData(originalDailyData);
+        window.alert(res.error);
+      } else if (res.staffUpdate) {
+        commitStaffUpdate(res.staffUpdate, selectedDate);
+      }
+    } catch {
+      setDailyData(originalDailyData);
+      window.alert("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      removeToggling(row.id, selectedDate);
+    }
+  };
+
+  const handleMarkAbsentClick = (row: AdminStaffRow) => {
+    setAbsenceReasonInput(row.absence_reason || "");
+    setReasonModalData({
+      staffId: row.id,
+      staffName: row.full_name,
+      dateStr: selectedDate,
+      currentStatus: "absent",
+      currentReason: row.absence_reason,
+    });
+    setReasonModalOpen(true);
   };
 
   // Inline reason editing handlers
@@ -214,6 +262,7 @@ export function AdminAttendancePanel({
           ? {
               ...s,
               hasReport: false,
+              isLate: false,
               absence_reason: trimmedReason || undefined,
               check_in_time: undefined,
             }
@@ -243,12 +292,14 @@ export function AdminAttendancePanel({
 
   const handleMonthlyCellClick = (row: MonthlyAttendanceStaffRow, dateStr: string, att: any) => {
     const isPresent = !!att?.hasReport;
-    setAbsenceReasonInput(att?.absenceReason || "");
+    const isLate = !!att?.isLate;
+    const status = !isPresent ? "absent" : (isLate ? "late" : "present");
+    setAbsenceReasonInput(status === "absent" ? (att?.absenceReason || "") : "");
     setReasonModalData({
       staffId: row.id,
       staffName: row.full_name,
       dateStr,
-      currentHasReport: isPresent,
+      currentStatus: status,
       currentReason: att?.absenceReason,
     });
     setReasonModalOpen(true);
@@ -256,7 +307,7 @@ export function AdminAttendancePanel({
 
   const handleSaveAttendanceModal = async () => {
     if (!reasonModalData) return;
-    const { staffId, dateStr, currentHasReport } = reasonModalData;
+    const { staffId, dateStr, currentStatus } = reasonModalData;
     const staffRow = dailyData.staff.find((s) => s.id === staffId);
     setReasonModalOpen(false);
     addToggling(staffId, dateStr);
@@ -271,23 +322,36 @@ export function AdminAttendancePanel({
       timeZone: "Asia/Ho_Chi_Minh",
     });
 
-    const optimisticUpdate: StaffAttendanceUpdate = currentHasReport
-      ? {
-          staffId,
-          hasReport: true,
-          tasks: [],
-          check_in_time: checkInTimeStr,
-          absence_reason: undefined,
-          profile_id: staffRow?.profile_id,
-        }
-      : {
-          staffId,
-          hasReport: false,
-          tasks: [],
-          check_in_time: undefined,
-          absence_reason: absenceReasonInput.trim() || undefined,
-          profile_id: staffRow?.profile_id,
-        };
+    const optimisticUpdate: StaffAttendanceUpdate = 
+      currentStatus === "present"
+        ? {
+            staffId,
+            hasReport: true,
+            isLate: false,
+            tasks: [],
+            check_in_time: checkInTimeStr,
+            absence_reason: undefined,
+            profile_id: staffRow?.profile_id,
+          }
+        : currentStatus === "late"
+        ? {
+            staffId,
+            hasReport: true,
+            isLate: true,
+            tasks: [],
+            check_in_time: checkInTimeStr,
+            absence_reason: undefined,
+            profile_id: staffRow?.profile_id,
+          }
+        : {
+            staffId,
+            hasReport: false,
+            isLate: false,
+            tasks: [],
+            check_in_time: undefined,
+            absence_reason: absenceReasonInput.trim() || undefined,
+            profile_id: staffRow?.profile_id,
+          };
 
     if (dateStr === selectedDate) {
       setDailyData((prev) => applyStaffAttendanceUpdate(prev, optimisticUpdate));
@@ -299,9 +363,12 @@ export function AdminAttendancePanel({
     }
 
     try {
-      const res = currentHasReport
-        ? await markStaffPresent(staffId, dateStr, staffRow?.profile_id)
-        : await markStaffAbsent(staffId, dateStr, absenceReasonInput, staffRow?.profile_id);
+      const res = 
+        currentStatus === "present"
+          ? await markStaffPresent(staffId, dateStr, staffRow?.profile_id)
+          : currentStatus === "late"
+          ? await markStaffLate(staffId, dateStr, undefined, staffRow?.profile_id)
+          : await markStaffAbsent(staffId, dateStr, absenceReasonInput, staffRow?.profile_id);
 
       if ("error" in res) {
         setDailyData(originalDailyData);
@@ -326,7 +393,8 @@ export function AdminAttendancePanel({
   const filteredDailyStaff = useMemo(() => {
     return dailyData.staff.filter((s) => {
       if (branchFilter !== "all" && s.branch_id !== branchFilter) return false;
-      if (statusFilter === "present" && !s.hasReport) return false;
+      if (statusFilter === "present" && (!s.hasReport || s.isLate)) return false;
+      if (statusFilter === "late" && (!s.hasReport || !s.isLate)) return false;
       if (statusFilter === "absent" && s.hasReport) return false;
       
       if (searchQuery.trim()) {
@@ -359,12 +427,15 @@ export function AdminAttendancePanel({
     });
   }, [monthlyData, branchFilter, searchQuery]);
 
-  // Present/Absent counts for current daily data
-  const { dailyPresentCount, dailyAbsentCount } = useMemo(() => {
-    const present = dailyData.staff.filter(s => s.hasReport).length;
+  // Present/Absent/Late counts for current daily data
+  const { dailyPresentCount, dailyLateCount, dailyAbsentCount } = useMemo(() => {
+    const present = dailyData.staff.filter(s => s.hasReport && !s.isLate).length;
+    const late = dailyData.staff.filter(s => s.hasReport && s.isLate).length;
+    const absent = dailyData.staff.filter(s => !s.hasReport).length;
     return {
       dailyPresentCount: present,
-      dailyAbsentCount: dailyData.staff.length - present
+      dailyLateCount: late,
+      dailyAbsentCount: absent
     };
   }, [dailyData.staff]);
 
@@ -477,10 +548,11 @@ export function AdminAttendancePanel({
               <AdminSelect
                 value={statusFilter}
                 onChange={setStatusFilter}
-                className="w-36"
+                className="w-44"
                 options={[
                   { value: "all", label: "Tất cả trạng thái" },
                   { value: "present", label: "Đi làm" },
+                  { value: "late", label: "Đi muộn" },
                   { value: "absent", label: "Vắng" },
                 ]}
               />
@@ -547,7 +619,7 @@ export function AdminAttendancePanel({
         {subTab === "daily" ? (
           <div className="p-4 space-y-4">
             {/* Daily Stat Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -568,6 +640,17 @@ export function AdminAttendancePanel({
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đi làm</p>
                   <p className="text-xl font-black text-emerald-600 mt-0.5">{dailyPresentCount}</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đi muộn</p>
+                  <p className="text-xl font-black text-amber-600 mt-0.5">{dailyLateCount}</p>
                 </div>
               </div>
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
@@ -595,7 +678,7 @@ export function AdminAttendancePanel({
                       <th className="px-4 py-3 text-center">Giờ điểm danh</th>
                       <th className="px-4 py-3 text-center">Trạng thái</th>
                       <th className="px-4 py-3">Lý do vắng</th>
-                      <th className="px-4 py-3 text-center w-28">Thao tác</th>
+                      <th className="px-4 py-3 text-center w-32">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -644,15 +727,17 @@ export function AdminAttendancePanel({
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {row.hasReport ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            {row.hasReport && !row.isLate ? (
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 min-w-[70px] text-center shadow-xs whitespace-nowrap">
                                 Đi làm
                               </span>
+                            ) : row.hasReport && row.isLate ? (
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 min-w-[70px] text-center shadow-xs whitespace-nowrap">
+                                Đi muộn
+                              </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-400 border border-slate-100">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                Vắng
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 min-w-[70px] text-center shadow-xs whitespace-nowrap">
+                                Vắng mặt
                               </span>
                             )}
                           </td>
@@ -676,10 +761,13 @@ export function AdminAttendancePanel({
                                 placeholder="Nhập lý do..."
                                 className="w-full bg-transparent border-0 border-b-0 outline-none p-0 focus:ring-0 text-[11px] font-bold text-amber-600 focus:outline-none focus:border-0 placeholder:italic placeholder:font-normal placeholder:text-slate-400"
                               />
-                            ) : row.absence_reason ? (
+                            ) : row.absence_reason &&
+                              row.absence_reason !== "Vắng" &&
+                              row.absence_reason !== "Vắng mặt" &&
+                              row.absence_reason !== "Nghỉ" ? (
                               <button
                                 onClick={() => startEditingReason(row)}
-                                className="text-amber-600 bg-amber-50 px-2 py-1 rounded text-[11px] border border-amber-100 font-bold hover:bg-amber-100/60 transition-colors cursor-pointer text-left w-full block"
+                                className="inline-block text-amber-850 bg-amber-50 px-2 py-0.5 rounded-[4px] text-[10px] border border-amber-200 font-bold hover:bg-amber-100/60 transition-colors cursor-pointer text-left w-fit"
                               >
                                 {row.absence_reason}
                               </button>
@@ -700,20 +788,51 @@ export function AdminAttendancePanel({
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
                               </span>
-                            ) : row.hasReport ? (
-                              <button
-                                onClick={() => handleDailyToggleClick(row, true)}
-                                className="px-2.5 py-1 rounded-md text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 transition-colors cursor-pointer"
-                              >
-                                Vắng
-                              </button>
+                            ) : row.hasReport && !row.isLate ? (
+                              <div className="flex justify-center gap-1">
+                                <button
+                                  onClick={() => handleMarkLateClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-amber-700 border border-amber-600 bg-white hover:bg-amber-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Muộn
+                                </button>
+                                <button
+                                  onClick={() => handleMarkAbsentClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-rose-600 border border-rose-500 bg-white hover:bg-rose-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Vắng
+                                </button>
+                              </div>
+                            ) : row.hasReport && row.isLate ? (
+                              <div className="flex justify-center gap-1">
+                                <button
+                                  onClick={() => handleMarkPresentClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-emerald-600 border border-emerald-600 bg-white hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Đi làm
+                                </button>
+                                <button
+                                  onClick={() => handleMarkAbsentClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-rose-600 border border-rose-500 bg-white hover:bg-rose-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Vắng
+                                </button>
+                              </div>
                             ) : (
-                              <button
-                                onClick={() => handleDailyToggleClick(row, false)}
-                                className="px-2.5 py-1 rounded-md text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors cursor-pointer"
-                              >
-                                Đi làm
-                              </button>
+                              <div className="flex justify-center gap-1">
+                                <button
+                                  onClick={() => handleMarkPresentClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-emerald-600 border border-emerald-600 bg-white hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Đi làm
+                                </button>
+                                <button
+                                  onClick={() => handleMarkLateClick(row)}
+                                  className="px-2 py-1 rounded-[4px] text-[10px] font-bold text-amber-700 border border-amber-600 bg-white hover:bg-amber-600 hover:text-white transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  Muộn
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -748,7 +867,7 @@ export function AdminAttendancePanel({
                     Bảng công tháng {formatMonthLabel(selectedMonth)} (Tổng số: {filteredMonthlyStaff.length} người)
                   </span>
                   <span className="text-[10px] text-slate-400 italic">
-                    Ký hiệu: <strong className="text-emerald-600 bg-emerald-50 px-1 border border-emerald-200 rounded">x</strong> = Đi làm · <strong className="text-amber-600 bg-amber-50 px-1 border border-amber-200 rounded">P</strong> = Nghỉ phép · <strong className="text-slate-400 bg-slate-100 px-1 border border-slate-200 rounded">•</strong> = Vắng (Bấm ô để chỉnh sửa)
+                    Ký hiệu: <strong className="text-emerald-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">x</strong> = Đi làm · <strong className="text-amber-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">M</strong> = Đi muộn · <strong className="text-rose-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">P</strong> = Nghỉ phép · <strong className="text-rose-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">V</strong> = Vắng không phép · <strong className="text-slate-400 font-bold">•</strong> = Ngày tương lai (Bấm ô để chỉnh sửa)
                   </span>
                 </div>
 
@@ -811,22 +930,29 @@ export function AdminAttendancePanel({
                               const { isWeekend } = getDayOfWeekLabel(day);
                               const isCellTogglingMonthly = isCellToggling(row.id, dateStr);
 
+                              const isFuture = dateStr > todayStr;
+                              let cellClass = "px-1 py-2.5 text-center border-r border-slate-100 text-[10px] font-bold cursor-pointer transition-all select-none ";
+                              
+                              if (isCellTogglingMonthly) {
+                                cellClass += "hover:bg-primary/5";
+                              } else {
+                                cellClass += isWeekend ? "bg-amber-50/20 hover:bg-primary/5" : "bg-white hover:bg-primary/5";
+                              }
+
                               return (
                                 <td
                                   key={day}
                                   onClick={() => !isCellTogglingMonthly && handleMonthlyCellClick(row, dateStr, att)}
                                   title={
                                     att?.hasReport
-                                      ? `${row.full_name} đi làm lúc ${att.checkInTime || "—"}. Click để chỉnh sửa.`
+                                      ? att.isLate
+                                        ? `${row.full_name} đi muộn lúc ${att.checkInTime || "—"}. Click để chỉnh sửa.`
+                                        : `${row.full_name} đi làm lúc ${att.checkInTime || "—"}. Click để chỉnh sửa.`
                                       : att?.absenceReason
                                         ? `${row.full_name} vắng (Nghỉ phép): ${att.absenceReason}. Click để chỉnh sửa.`
                                         : `${row.full_name} vắng không phép. Click để chỉnh sửa.`
                                   }
-                                  className={`px-1 py-1 text-center border-r border-slate-100 text-[10px] font-bold cursor-pointer transition-all hover:bg-primary/5 select-none ${
-                                    isWeekend ? "bg-amber-50/20" : ""
-                                  } ${att?.hasReport ? "bg-emerald-50/50 hover:bg-emerald-100/60" : ""} ${
-                                    !att?.hasReport && att?.absenceReason ? "bg-amber-50/70 hover:bg-amber-100/80" : ""
-                                  }`}
+                                  className={cellClass}
                                 >
                                   {isCellTogglingMonthly ? (
                                     <span className="flex items-center justify-center w-full">
@@ -835,12 +961,18 @@ export function AdminAttendancePanel({
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                       </svg>
                                     </span>
-                                  ) : att?.hasReport ? (
-                                    <span className="text-emerald-600 block w-full text-center">x</span>
-                                  ) : att?.absenceReason ? (
-                                    <span className="text-amber-600 block w-full text-center">P</span>
-                                  ) : (
+                                  ) : isFuture ? (
                                     <span className="text-slate-200 block w-full text-center hover:text-slate-400">•</span>
+                                  ) : att?.hasReport ? (
+                                    att.isLate ? (
+                                      <span className="text-amber-600 font-extrabold block w-full text-center">M</span>
+                                    ) : (
+                                      <span className="text-emerald-600 font-extrabold block w-full text-center">x</span>
+                                    )
+                                  ) : (
+                                    <span className="text-rose-600 font-extrabold block w-full text-center font-black">
+                                      {att?.absenceReason ? "P" : "V"}
+                                    </span>
                                   )}
                                 </td>
                               );
@@ -898,15 +1030,15 @@ export function AdminAttendancePanel({
             {/* Status selection */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
-                    setReasonModalData(prev => prev ? { ...prev, currentHasReport: true } : null);
+                    setReasonModalData(prev => prev ? { ...prev, currentStatus: "present" } : null);
                   }}
                   className={`py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                    reasonModalData.currentHasReport
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                    reasonModalData.currentStatus === "present"
+                      ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
                       : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -915,11 +1047,24 @@ export function AdminAttendancePanel({
                 <button
                   type="button"
                   onClick={() => {
-                    setReasonModalData(prev => prev ? { ...prev, currentHasReport: false } : null);
+                    setReasonModalData(prev => prev ? { ...prev, currentStatus: "late" } : null);
                   }}
                   className={`py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                    !reasonModalData.currentHasReport
-                      ? "bg-amber-50 text-amber-600 border-amber-200"
+                    reasonModalData.currentStatus === "late"
+                      ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  Đi muộn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReasonModalData(prev => prev ? { ...prev, currentStatus: "absent" } : null);
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                    reasonModalData.currentStatus === "absent"
+                      ? "bg-rose-600 text-white border-rose-700 shadow-sm"
                       : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -929,7 +1074,7 @@ export function AdminAttendancePanel({
             </div>
 
             {/* Absence reason selection if marked absent */}
-            {!reasonModalData.currentHasReport && (
+            {reasonModalData.currentStatus === "absent" && (
               <div className="space-y-2.5 animate-fade-in">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lý do vắng</label>
                 <input
