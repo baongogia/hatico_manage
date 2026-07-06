@@ -133,9 +133,15 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   sheet.addRow([]);
 
   // Table Headers
+  const getDayOfWeekLabel = (day: number) => {
+    const date = new Date(Number(year), Number(monthNum) - 1, day);
+    const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+    return dayNames[date.getDay()];
+  };
+
   const headerRowValues = ["Họ tên", "Chi nhánh", "Bộ phận", "Chức vụ"];
   for (let d = 1; d <= lastDay; d++) {
-    headerRowValues.push(String(d));
+    headerRowValues.push(`${d}\n${getDayOfWeekLabel(d)}`);
   }
   headerRowValues.push("Số ngày công");
 
@@ -144,13 +150,13 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
     font: { bold: true, size: 10, color: { argb: PRIMARY } },
     fill: { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } },
     border: thinBorder,
-    alignment: { vertical: "middle", horizontal: "center" },
+    alignment: { vertical: "middle", horizontal: "center", wrapText: true },
   });
   tableHeaderRow.getCell(1).alignment = { vertical: "middle", horizontal: "left" };
   tableHeaderRow.getCell(2).alignment = { vertical: "middle", horizontal: "left" };
   tableHeaderRow.getCell(3).alignment = { vertical: "middle", horizontal: "left" };
   tableHeaderRow.getCell(4).alignment = { vertical: "middle", horizontal: "left" };
-  tableHeaderRow.height = 24;
+  tableHeaderRow.height = 30;
 
   // Add Data Rows
   sortedStaff.forEach((s, idx) => {
@@ -173,7 +179,12 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
       } else if (status?.absenceReason) {
         rowValues.push("p");
       } else {
-        rowValues.push("");
+        const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+        if (dateStr <= todayStr) {
+          rowValues.push("v");
+        } else {
+          rowValues.push("");
+        }
       }
     }
 
@@ -204,6 +215,9 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
       } else if (cell.value === "p") {
         cell.font = { size: 10, bold: true, color: { argb: "FFC65911" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ABSENT_REASON_FILL } };
+      } else if (cell.value === "v") {
+        cell.font = { size: 10, bold: true, color: { argb: "FFE11D48" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE6E6" } };
       }
     }
 
@@ -211,7 +225,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   });
 
   sheet.addRow([]);
-  addMergedLine("Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo", {
+  addMergedLine("Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   v = Vắng không phép   |   Trống = Ngày tương lai", {
     font: { italic: true, size: 9, color: { argb: "FF475569" } },
     alignment: { horizontal: "left", vertical: "middle" }
   }, totalCols);

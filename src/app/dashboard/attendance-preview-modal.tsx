@@ -345,7 +345,7 @@ export function MonthlyAttendancePreviewModal({
               </div>
 
               {/* Row 5: Table Header */}
-              <div className="flex h-8 items-center bg-slate-100 font-bold text-[#0f2d59] border-b border-slate-300">
+              <div className="flex h-10 items-center bg-slate-100 font-bold text-[#0f2d59] border-b border-slate-300">
                 <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-slate-300 w-10 h-full flex items-center justify-center shrink-0">
                   5
                 </div>
@@ -353,11 +353,18 @@ export function MonthlyAttendancePreviewModal({
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Chi nhánh</div>
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Bộ phận</div>
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Chức vụ</div>
-                {Array.from({ length: lastDay }).map((_, i) => (
-                  <div key={i} className="w-8 border-r border-slate-300 shrink-0 text-center flex items-center justify-center h-full">
-                    {i + 1}
-                  </div>
-                ))}
+                {Array.from({ length: lastDay }).map((_, i) => {
+                  const day = i + 1;
+                  const date = new Date(Number(year), Number(monthNum) - 1, day);
+                  const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+                  const label = dayNames[date.getDay()];
+                  return (
+                    <div key={i} className="w-8 border-r border-slate-300 shrink-0 text-center flex flex-col items-center justify-center h-full leading-tight text-[9px]">
+                      <div>{day}</div>
+                      <div className="text-[7.5px] opacity-75">{label}</div>
+                    </div>
+                  );
+                })}
                 <div className="w-[80px] shrink-0 text-center flex items-center justify-center h-full">Số ngày công</div>
               </div>
 
@@ -404,6 +411,12 @@ export function MonthlyAttendancePreviewModal({
                       } else if (att?.absenceReason) {
                         cellText = "p";
                         cellStyleClass = "text-[#c65911] bg-[#fce4d6]";
+                      } else {
+                        const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
+                        if (dateStr <= todayStr) {
+                          cellText = "v";
+                          cellStyleClass = "text-rose-600 bg-rose-50";
+                        }
                       }
 
                       return (
@@ -430,7 +443,7 @@ export function MonthlyAttendancePreviewModal({
                   {6 + filteredStaff.length}
                 </div>
                 <div className="px-3 text-slate-500 italic text-[9px] w-full flex items-center h-full">
-                  Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   Trống = Vắng không báo cáo
+                  Ghi chú ký hiệu:   x = Đi làm (Điểm danh/Có báo cáo)   |   m = Đi muộn   |   p = Nghỉ phép (Vắng có lý do)   |   v = Vắng không phép   |   Trống = Ngày tương lai
                 </div>
               </div>
 
