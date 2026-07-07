@@ -478,6 +478,18 @@ export function AdminAttendancePanel({
     return getDaysInMonth(selectedMonth);
   }, [selectedMonth]);
 
+  const workingDaysInMonth = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const days = [];
+    for (let day = 1; day <= daysInSelectedMonth; day++) {
+      const date = new Date(year, month - 1, day);
+      if (date.getDay() !== 0) { // Exclude Sunday (0)
+        days.push(day);
+      }
+    }
+    return days;
+  }, [selectedMonth, daysInSelectedMonth]);
+
   const getDayOfWeekLabel = (day: number) => {
     const [year, month] = selectedMonth.split("-").map(Number);
     const date = new Date(year, month - 1, day);
@@ -880,8 +892,7 @@ export function AdminAttendancePanel({
                         <th className="px-3 py-3 w-28 text-center">Chi nhánh</th>
                         <th className="px-3 py-3 w-28 text-center">Bộ phận</th>
                         {/* Day headers */}
-                        {Array.from({ length: daysInSelectedMonth }).map((_, i) => {
-                          const day = i + 1;
+                        {workingDaysInMonth.map((day) => {
                           const { label, isWeekend } = getDayOfWeekLabel(day);
                           return (
                             <th
@@ -901,7 +912,7 @@ export function AdminAttendancePanel({
                     <tbody className="divide-y divide-slate-100">
                       {filteredMonthlyStaff.length === 0 ? (
                         <tr>
-                          <td colSpan={4 + daysInSelectedMonth} className="text-center py-10 text-slate-400 italic">
+                          <td colSpan={4 + workingDaysInMonth.length} className="text-center py-10 text-slate-400 italic">
                             Không tìm thấy nhân sự phù hợp
                           </td>
                         </tr>
@@ -923,8 +934,7 @@ export function AdminAttendancePanel({
                             <td className="px-3 py-2.5 text-center text-slate-500 font-medium truncate">{row.department || "—"}</td>
 
                             {/* Calendar columns */}
-                            {Array.from({ length: daysInSelectedMonth }).map((_, i) => {
-                              const day = i + 1;
+                            {workingDaysInMonth.map((day) => {
                               const dateStr = `${selectedMonth}-${String(day).padStart(2, "0")}`;
                               const att = row.attendanceMap[dateStr];
                               const { isWeekend } = getDayOfWeekLabel(day);

@@ -1246,7 +1246,10 @@ export async function getAdminMonthlyAttendance(monthStr: string) {
         absenceReason,
       };
 
-      if (hasReport) {
+      const date = new Date(year, month - 1, day);
+      const isSunday = date.getDay() === 0;
+
+      if (hasReport && !isSunday) {
         presentCount++;
       }
     }

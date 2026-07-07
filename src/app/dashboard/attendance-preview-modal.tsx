@@ -236,10 +236,21 @@ export function MonthlyAttendancePreviewModal({
   const [year, monthNum] = selectedMonth.split("-");
   const lastDay = new Date(Number(year), Number(monthNum), 0).getDate();
 
+  const workingDays = useMemo(() => {
+    const days = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const date = new Date(Number(year), Number(monthNum) - 1, d);
+      if (date.getDay() !== 0) { // Exclude Sunday
+        days.push(d);
+      }
+    }
+    return days;
+  }, [year, monthNum, lastDay]);
+
   if (!open) return null;
 
   // Total columns helper: 4 (name, branch, dept, pos) + days + 1 (total)
-  const totalCols = 4 + lastDay + 1;
+  const totalCols = 4 + workingDays.length + 1;
 
   // Excel headers list
   const getHeaderLetter = (idx: number) => {
@@ -353,13 +364,12 @@ export function MonthlyAttendancePreviewModal({
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Chi nhánh</div>
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Bộ phận</div>
                 <div className="w-[100px] border-r border-slate-300 px-3 shrink-0 flex items-center h-full">Chức vụ</div>
-                {Array.from({ length: lastDay }).map((_, i) => {
-                  const day = i + 1;
+                {workingDays.map((day) => {
                   const date = new Date(Number(year), Number(monthNum) - 1, day);
                   const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
                   const label = dayNames[date.getDay()];
                   return (
-                    <div key={i} className="w-8 border-r border-slate-300 shrink-0 text-center flex flex-col items-center justify-center h-full leading-tight text-[9px]">
+                    <div key={day} className="w-8 border-r border-slate-300 shrink-0 text-center flex flex-col items-center justify-center h-full leading-tight text-[9px]">
                       <div>{day}</div>
                       <div className="text-[7.5px] opacity-75">{label}</div>
                     </div>
@@ -393,8 +403,7 @@ export function MonthlyAttendancePreviewModal({
                     </div>
 
                     {/* Day cells */}
-                    {Array.from({ length: lastDay }).map((_, i) => {
-                      const day = i + 1;
+                    {workingDays.map((day) => {
                       const dateStr = `${selectedMonth}-${String(day).padStart(2, "0")}`;
                       const att = s.attendanceMap[dateStr];
 

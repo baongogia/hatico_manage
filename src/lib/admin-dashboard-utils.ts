@@ -83,10 +83,14 @@ export function applyMonthlyAttendanceUpdate(
         absenceReason: update.absence_reason,
       };
       let presentCount = s.presentCount;
-      if (wasPresent && !update.hasReport) {
-        presentCount = Math.max(0, presentCount - 1);
-      } else if (!wasPresent && update.hasReport) {
-        presentCount += 1;
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const isSunday = new Date(year, month - 1, day).getDay() === 0;
+      if (!isSunday) {
+        if (wasPresent && !update.hasReport) {
+          presentCount = Math.max(0, presentCount - 1);
+        } else if (!wasPresent && update.hasReport) {
+          presentCount += 1;
+        }
       }
       return { ...s, attendanceMap: currentMap, presentCount };
     }),

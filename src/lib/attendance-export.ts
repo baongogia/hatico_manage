@@ -33,6 +33,14 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   const [year, monthNum] = month.split("-");
   const lastDay = new Date(Number(year), Number(monthNum), 0).getDate();
 
+  const workingDays: number[] = [];
+  for (let d = 1; d <= lastDay; d++) {
+    const date = new Date(Number(year), Number(monthNum) - 1, d);
+    if (date.getDay() !== 0) { // Exclude Sunday (0)
+      workingDays.push(d);
+    }
+  }
+
   const filteredStaff = branchFilter === "all" ? staff : staff.filter(s => s.branch_id === branchFilter);
   const sortedStaff = [...filteredStaff].sort((a, b) => a.full_name.localeCompare(b.full_name, "vi"));
 
@@ -49,9 +57,9 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
     { header: "Chức vụ", key: "pos", width: 18 },
   ];
 
-  for (let d = 1; d <= lastDay; d++) {
+  workingDays.forEach((d) => {
     columns.push({ header: String(d), key: `d_${d}`, width: 4.5 });
-  }
+  });
 
   columns.push({ header: "Tổng công", key: "total", width: 12 });
 
@@ -82,7 +90,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
     return n;
   };
 
-  const totalCols = 4 + lastDay + 1;
+  const totalCols = 4 + workingDays.length + 1;
 
   // 1. Fetch logo and add to workbook
   let imageId: number | undefined;
@@ -140,9 +148,9 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
   };
 
   const headerRowValues = ["Họ tên", "Chi nhánh", "Bộ phận", "Chức vụ"];
-  for (let d = 1; d <= lastDay; d++) {
+  workingDays.forEach((d) => {
     headerRowValues.push(`${d}\n${getDayOfWeekLabel(d)}`);
-  }
+  });
   headerRowValues.push("Số ngày công");
 
   const tableHeaderRow = sheet.addRow(headerRowValues);
@@ -167,7 +175,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
       s.position || "—",
     ];
 
-    for (let d = 1; d <= lastDay; d++) {
+    workingDays.forEach((d) => {
       const dateStr = `${month}-${String(d).padStart(2, "0")}`;
       const status = s.attendanceMap[dateStr];
       if (status?.hasReport) {
@@ -186,7 +194,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
           rowValues.push("");
         }
       }
-    }
+    });
 
     rowValues.push(String(s.presentCount));
 
@@ -204,8 +212,8 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
     dataRow.getCell(3).alignment = { vertical: "middle", horizontal: "left" };
     dataRow.getCell(4).alignment = { vertical: "middle", horizontal: "left" };
 
-    for (let d = 1; d <= lastDay; d++) {
-      const cell = dataRow.getCell(4 + d);
+    workingDays.forEach((d, dIdx) => {
+      const cell = dataRow.getCell(5 + dIdx);
       if (cell.value === "x") {
         cell.font = { size: 10, bold: true, color: { argb: "FF385723" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PRESENT_FILL } };
@@ -219,7 +227,7 @@ export async function downloadAdminAttendanceExcel(filename: string, options: Ex
         cell.font = { size: 10, bold: true, color: { argb: "FFE11D48" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE6E6" } };
       }
-    }
+    });
 
     dataRow.getCell(totalCols).font = { size: 10, bold: true, color: { argb: PRIMARY } };
   });
