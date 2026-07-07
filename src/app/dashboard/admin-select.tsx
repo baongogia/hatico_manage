@@ -92,7 +92,7 @@ export default function AdminSelect({
         open ? "ring-1 ring-primary/35 border-primary/50" : ""
       }`
     : compact
-      ? `h-8 w-full bg-white hover:bg-slate-50 px-1.5 rounded border border-slate-200/80 text-[11px] font-medium touch-manipulation transition-colors ${focusRing} ${
+      ? `h-8 w-full bg-white hover:bg-slate-50 px-1.5 rounded-[6px] border border-slate-200/80 text-[11px] font-medium touch-manipulation transition-colors ${focusRing} ${
           open ? "ring-2 ring-primary/35 border-primary/50" : ""
         }`
       : `${adminControlClass} ${focusRing}`;
@@ -114,8 +114,8 @@ export default function AdminSelect({
       }
       className={
         portal
-          ? "max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-lg border border-slate-200 py-1"
-          : "absolute z-50 mt-1 left-0 right-0 sm:right-auto sm:min-w-full max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-lg border border-slate-200 py-1"
+          ? "max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-[6px] border border-slate-200 py-1"
+          : "absolute z-50 mt-1 left-0 right-0 max-h-56 overflow-y-auto no-scrollbar bg-white shadow-xl rounded-[6px] border border-slate-200 py-1"
       }
     >
       {options.map((opt) => (

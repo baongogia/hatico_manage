@@ -17,7 +17,7 @@ export interface CallReportEntry {
 
 export interface MarketingPostEntry {
   type: "marketing_post";
-  platform: "Tiktok" | "Facebook" | "Youtube";
+  platform: "Tiktok" | "Facebook" | "Youtube" | "Website";
   title: string;
   link: string;
   views: string;

@@ -91,7 +91,120 @@ export function MarketingExcelPreviewModal({
             
             {activeTab === "posts" ? (
               /* Simulated Sheet 1: Posts */
-              <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_1fr_2.4fr_1.8fr_1fr_1fr_1.2fr_1.4fr_1.2fr] relative select-none">
+              <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_1fr_2.4fr_1.8fr_1fr_1fr_1.2fr] relative select-none">
+                
+                {/* Columns Header (A to F) */}
+                <div className="bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-r border-b border-slate-300 py-1 flex items-center justify-center text-[10px]">
+                  {/* corner */}
+                </div>
+                {["A", "B", "C", "D", "E", "F"].map((col) => (
+                  <div
+                    key={col}
+                    className={`bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-slate-300 py-1 text-[10px] ${
+                      col !== "F" ? "border-r border-b" : "border-b"
+                    }`}
+                  >
+                    {col}
+                  </div>
+                ))}
+
+                {/* Row 1: Company Info */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2.5 flex items-center justify-center text-[10px] h-10">
+                  1
+                </div>
+                <div className="col-span-5 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
+                  CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
+                </div>
+                {/* Logo in Column F spanning Rows 1-3 */}
+                <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo/hatico_logo.png" alt="Logo" className="w-[140px] h-[65px] object-contain" />
+                </div>
+
+                {/* Row 2: Title */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-3 flex items-center justify-center text-[10px] h-12">
+                  2
+                </div>
+                <div className="col-span-5 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
+                  BÁO CÁO HIỆU SUẤT ĐĂNG BÀI MARKETING
+                </div>
+
+                {/* Row 3: Stats */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2 flex items-center justify-center text-[10px] h-10">
+                  3
+                </div>
+                <div className="col-span-5 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
+                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {posts.length} bài viết
+                </div>
+
+                {/* Row 4: Spacer */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-1.5 flex items-center justify-center text-[10px] h-6">
+                  4
+                </div>
+                <div className="col-span-6 border-b border-slate-200 h-6"></div>
+
+                {/* Row 5: Table Column Headers */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-7">
+                  5
+                </div>
+                {["Nền tảng", "Tiêu đề / Nội dung bài đăng", "Đường dẫn (Link)", "Lượt xem", "Lượt thích", "Ngày nộp"].map((header, idx) => (
+                  <div
+                    key={idx}
+                    className={`bg-[#0f2d59] text-white font-bold px-2 flex items-center h-7 justify-center text-[10px] text-center ${
+                      idx !== 5 ? "border-r border-b border-slate-300" : "border-b border-slate-300"
+                    }`}
+                  >
+                    {header}
+                  </div>
+                ))}
+
+                {/* Data Rows */}
+                {posts.length === 0 ? (
+                  <div className="contents">
+                    <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-10">
+                      6
+                    </div>
+                    <div className="col-span-6 border-b border-slate-200 text-slate-400 italic flex items-center justify-center h-10 bg-white">
+                      Chưa có dữ liệu
+                    </div>
+                  </div>
+                ) : (
+                  posts.map((post, idx) => {
+                    const dataRowIndex = 6 + idx;
+                    const isEven = idx % 2 === 1;
+                    const rowBg = isEven ? "bg-[#f8fafc]" : "bg-white";
+
+                    return (
+                      <div key={idx} className="contents">
+                        <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] min-h-[28px] py-1.5">
+                          {dataRowIndex}
+                        </div>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 font-semibold text-slate-900 flex items-start py-1.5 justify-center`}>
+                          {post.platform}
+                        </div>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-700 flex items-start py-1.5`}>
+                          {post.title || "—"}
+                        </div>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-500 flex items-start py-1.5 break-all`}>
+                          {post.link || "—"}
+                        </div>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
+                          {post.views || "—"}
+                        </div>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
+                          {post.likes || "—"}
+                        </div>
+                        <div className={`${rowBg} border-b border-slate-200 px-2 text-slate-500 flex items-start py-1.5 justify-center`}>
+                          {post.report_date}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              /* Simulated Sheet 2: Events */
+              <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_1.4fr_1fr_1fr_0.8fr_1.2fr_1.1fr_0.9fr_1.6fr] relative select-none">
                 
                 {/* Columns Header (A to H) */}
                 <div className="bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-r border-b border-slate-300 py-1 flex items-center justify-center text-[10px]">
@@ -126,7 +239,7 @@ export function MarketingExcelPreviewModal({
                   2
                 </div>
                 <div className="col-span-7 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
-                  BÁO CÁO HIỆU SUẤT ĐĂNG BÀI MARKETING
+                  BÁO CÁO BÀN GIAO MOOC & SỰ KIỆN
                 </div>
 
                 {/* Row 3: Stats */}
@@ -134,7 +247,7 @@ export function MarketingExcelPreviewModal({
                   3
                 </div>
                 <div className="col-span-7 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
-                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {posts.length} bài viết
+                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {events.length} sự kiện
                 </div>
 
                 {/* Row 4: Spacer */}
@@ -147,130 +260,11 @@ export function MarketingExcelPreviewModal({
                 <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-7">
                   5
                 </div>
-                {["Nền tảng", "Tiêu đề / Nội dung bài đăng", "Đường dẫn (Link)", "Lượt xem", "Lượt thích", "Trạng thái", "Người tạo", "Ngày nộp"].map((header, idx) => (
+                {["Sự kiện / Khách hàng", "Ngày thực hiện", "Loại mooc", "Số lượng", "Địa điểm", "Chi phí (VNĐ)", "Khách mời", "Kết quả đạt được"].map((header, idx) => (
                   <div
                     key={idx}
                     className={`bg-[#0f2d59] text-white font-bold px-2 flex items-center h-7 justify-center text-[10px] text-center ${
                       idx !== 7 ? "border-r border-b border-slate-300" : "border-b border-slate-300"
-                    }`}
-                  >
-                    {header}
-                  </div>
-                ))}
-
-                {/* Data Rows */}
-                {posts.length === 0 ? (
-                  <div className="contents">
-                    <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-10">
-                      6
-                    </div>
-                    <div className="col-span-8 border-b border-slate-200 text-slate-400 italic flex items-center justify-center h-10 bg-white">
-                      Chưa có dữ liệu
-                    </div>
-                  </div>
-                ) : (
-                  posts.map((post, idx) => {
-                    const dataRowIndex = 6 + idx;
-                    const isEven = idx % 2 === 1;
-                    const rowBg = isEven ? "bg-[#f8fafc]" : "bg-white";
-
-                    return (
-                      <div key={idx} className="contents">
-                        <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] min-h-[28px] py-1.5">
-                          {dataRowIndex}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 font-semibold text-slate-900 flex items-start py-1.5 justify-center`}>
-                          {post.platform}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-700 flex items-start py-1.5`}>
-                          {post.title || "—"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-500 flex items-start py-1.5 break-all`}>
-                          {post.link || "—"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {post.views || "—"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {post.likes || "—"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {post.status === "completed" ? "Hoàn thành" : post.status === "in_progress" ? "Đang tiến hành" : "Chờ duyệt"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {post.author_name || staffName}
-                        </div>
-                        <div className={`${rowBg} border-b border-slate-200 px-2 text-slate-500 flex items-start py-1.5 justify-center`}>
-                          {post.report_date}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              /* Simulated Sheet 2: Events */
-              <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_1.4fr_1fr_1fr_0.8fr_1.2fr_1.1fr_0.9fr_1.6fr_1.1fr_1.1fr] relative select-none">
-                
-                {/* Columns Header (A to J) */}
-                <div className="bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-r border-b border-slate-300 py-1 flex items-center justify-center text-[10px]">
-                  {/* corner */}
-                </div>
-                {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map((col) => (
-                  <div
-                    key={col}
-                    className={`bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-slate-300 py-1 text-[10px] ${
-                      col !== "J" ? "border-r border-b" : "border-b"
-                    }`}
-                  >
-                    {col}
-                  </div>
-                ))}
-
-                {/* Row 1: Company Info */}
-                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2.5 flex items-center justify-center text-[10px] h-10">
-                  1
-                </div>
-                <div className="col-span-9 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
-                  CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
-                </div>
-                {/* Logo in Column J spanning Rows 1-3 */}
-                <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4 bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo/hatico_logo.png" alt="Logo" className="w-[140px] h-[65px] object-contain" />
-                </div>
-
-                {/* Row 2: Title */}
-                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-3 flex items-center justify-center text-[10px] h-12">
-                  2
-                </div>
-                <div className="col-span-9 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
-                  BÁO CÁO BÀN GIAO MOOC & SỰ KIỆN
-                </div>
-
-                {/* Row 3: Stats */}
-                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2 flex items-center justify-center text-[10px] h-10">
-                  3
-                </div>
-                <div className="col-span-9 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
-                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {events.length} sự kiện
-                </div>
-
-                {/* Row 4: Spacer */}
-                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-1.5 flex items-center justify-center text-[10px] h-6">
-                  4
-                </div>
-                <div className="col-span-10 border-b border-slate-200 h-6"></div>
-
-                {/* Row 5: Table Column Headers */}
-                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-7">
-                  5
-                </div>
-                {["Sự kiện / Khách hàng", "Ngày thực hiện", "Loại mooc", "Số lượng", "Địa điểm", "Chi phí (VNĐ)", "Khách mời", "Kết quả đạt được", "Trạng thái", "Người tạo"].map((header, idx) => (
-                  <div
-                    key={idx}
-                    className={`bg-[#0f2d59] text-white font-bold px-2 flex items-center h-7 justify-center text-[10px] text-center ${
-                      idx !== 9 ? "border-r border-b border-slate-300" : "border-b border-slate-300"
                     }`}
                   >
                     {header}
@@ -283,7 +277,7 @@ export function MarketingExcelPreviewModal({
                     <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-10">
                       6
                     </div>
-                    <div className="col-span-10 border-b border-slate-200 text-slate-400 italic flex items-center justify-center h-10 bg-white">
+                    <div className="col-span-8 border-b border-slate-200 text-slate-400 italic flex items-center justify-center h-10 bg-white">
                       Chưa có dữ liệu
                     </div>
                   </div>
@@ -319,14 +313,8 @@ export function MarketingExcelPreviewModal({
                         <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
                           {event.attendees || "—"}
                         </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5`}>
+                        <div className={`${rowBg} border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5`}>
                           {event.outcome || "—"}
-                        </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {event.status === "completed" ? "Hoàn thành" : event.status === "in_progress" ? "Đang tiến hành" : "Chờ duyệt"}
-                        </div>
-                        <div className={`${rowBg} border-b border-slate-200 px-2 text-slate-600 flex items-start py-1.5 justify-center`}>
-                          {event.author_name || staffName}
                         </div>
                       </div>
                     );

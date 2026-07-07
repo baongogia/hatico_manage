@@ -66,17 +66,15 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     { key: "link", width: 24 },
     { key: "views", width: 12 },
     { key: "likes", width: 12 },
-    { key: "status", width: 16 },
-    { key: "author", width: 18 },
     { key: "date", width: 14 },
   ];
 
   const addMergedLinePost = (
     text: string,
     style: Partial<ExcelJS.Style>,
-    endCol: string = "G"
+    endCol: string = "E"
   ) => {
-    const row = postSheet.addRow([text, "", "", "", "", "", "", ""]);
+    const row = postSheet.addRow([text, "", "", "", "", ""]);
     const n = row.number;
     postSheet.mergeCells(`A${n}:${endCol}${n}`);
     styleRow(row, style);
@@ -106,7 +104,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
 
   if (imageId !== undefined) {
     postSheet.addImage(imageId, {
-      tl: { col: 7, row: 0 },
+      tl: { col: 5, row: 0 },
       ext: { width: 160, height: 75 },
     });
   }
@@ -119,8 +117,6 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     "Đường dẫn (Link)",
     "Lượt xem",
     "Lượt thích",
-    "Trạng thái",
-    "Người tạo",
     "Ngày nộp",
   ]);
   styleRow(postHeaderRow, {
@@ -132,7 +128,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
   postHeaderRow.height = 22;
 
   if (posts.length === 0) {
-    const emptyRow = postSheet.addRow(["—", "—", "—", "—", "—", "—", "—", "Chưa có dữ liệu"]);
+    const emptyRow = postSheet.addRow(["—", "—", "—", "—", "—", "Chưa có dữ liệu"]);
     styleRow(emptyRow, {
       font: { size: 10, italic: true, color: { argb: "FF64748B" } },
       border: thinBorder,
@@ -146,8 +142,6 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
         post.link,
         post.views,
         post.likes,
-        post.status === "completed" ? "Hoàn thành" : post.status === "in_progress" ? "Đang tiến hành" : "Chờ duyệt",
-        post.author_name || staffName,
         formatReportDate(post.report_date),
       ]);
       styleRow(dataRow, {
@@ -176,16 +170,14 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     { key: "budget", width: 16 },
     { key: "attendees", width: 14 },
     { key: "outcome", width: 24 },
-    { key: "status", width: 16 },
-    { key: "author", width: 18 },
   ];
 
   const addMergedLineEvent = (
     text: string,
     style: Partial<ExcelJS.Style>,
-    endCol: string = "I"
+    endCol: string = "G"
   ) => {
-    const row = eventSheet.addRow([text, "", "", "", "", "", "", "", "", ""]);
+    const row = eventSheet.addRow([text, "", "", "", "", "", "", ""]);
     const n = row.number;
     eventSheet.mergeCells(`A${n}:${endCol}${n}`);
     styleRow(row, style);
@@ -215,7 +207,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
 
   if (imageId !== undefined) {
     eventSheet.addImage(imageId, {
-      tl: { col: 9, row: 0 },
+      tl: { col: 7, row: 0 },
       ext: { width: 160, height: 75 },
     });
   }
@@ -231,8 +223,6 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     "Chi phí (VNĐ)",
     "Khách mời",
     "Kết quả đạt được",
-    "Trạng thái",
-    "Người tạo",
   ]);
   styleRow(eventHeaderRow, {
     font: { bold: true, size: 10, color: { argb: "FFFFFFFF" } },
@@ -243,7 +233,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
   eventHeaderRow.height = 22;
 
   if (events.length === 0) {
-    const emptyRow = eventSheet.addRow(["—", "—", "—", "—", "—", "—", "—", "—", "—", "Chưa có dữ liệu"]);
+    const emptyRow = eventSheet.addRow(["—", "—", "—", "—", "—", "—", "—", "Chưa có dữ liệu"]);
     styleRow(emptyRow, {
       font: { size: 10, italic: true, color: { argb: "FF64748B" } },
       border: thinBorder,
@@ -260,8 +250,6 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
         event.budget,
         event.attendees,
         event.outcome,
-        event.status === "completed" ? "Hoàn thành" : event.status === "in_progress" ? "Đang tiến hành" : "Chờ duyệt",
-        event.author_name || staffName,
       ]);
       styleRow(dataRow, {
         font: { size: 10 },

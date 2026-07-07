@@ -135,7 +135,23 @@ export function CallReportPanel({
   };
 
   const applyFetched = (calls: CallReportRow[]) => {
-    setRows(toEditableRows(calls));
+    setRows((prev) => {
+      const savedCalls = toEditableRows(calls);
+      const unsaved = prev.filter((c) => {
+        if (!c.rowId.startsWith("new-")) return false;
+        // Keep if completely empty
+        if (!c.customer_name.trim() && !c.phone.trim() && !c.province.trim()) return true;
+        // Check if already saved
+        const isSaved = savedCalls.some((sc) =>
+          sc.customer_name === c.customer_name &&
+          sc.phone === c.phone &&
+          sc.province === c.province &&
+          sc.report_date === c.report_date
+        );
+        return !isSaved;
+      });
+      return [...savedCalls, ...unsaved];
+    });
     setLoadedDates(new Set(calls.map((c) => c.report_date)));
     setSelected(new Set());
     setErrorMsg("");
@@ -177,10 +193,31 @@ export function CallReportPanel({
     rowId: string,
     field: keyof Omit<CallReportEntry, "type">,
     value: string,
+    shouldSave = false,
   ) => {
-    setRows((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r)),
-    );
+    setRows((prev) => {
+      const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
+      if (shouldSave) {
+        const editedRow = next.find((r) => r.rowId === rowId);
+        if (editedRow && editedRow.customer_name.trim()) {
+          setTimeout(() => {
+            startSave(async () => {
+              await persistRows(next);
+            });
+          }, 0);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleInputBlur = () => {
+    const hasValidRows = rows.some((r) => r.customer_name.trim());
+    if (hasValidRows) {
+      startSave(async () => {
+        await persistRows(rows);
+      });
+    }
   };
 
   const toggleSelect = (rowId: string) => {
@@ -232,23 +269,26 @@ export function CallReportPanel({
     }
     setErrorMsg("");
 
+    let nextRows: EditableCallRow[];
     if (editingRowId) {
-      setRows((prev) =>
-        prev.map((r) =>
-          r.rowId === editingRowId ? { ...r, ...mobileForm } : r,
-        ),
+      nextRows = rows.map((r) =>
+        r.rowId === editingRowId ? { ...r, ...mobileForm } : r,
       );
-      clearMobileForm();
-      return;
+    } else {
+      const row: EditableCallRow = {
+        ...newEmptyRow(todayStr),
+        ...mobileForm,
+      };
+      nextRows = [...rows, row];
+      setLoadedDates((prev) => new Set([...prev, todayStr]));
     }
-
-    const row: EditableCallRow = {
-      ...newEmptyRow(todayStr),
-      ...mobileForm,
-    };
-    setRows((prev) => [...prev, row]);
-    setLoadedDates((prev) => new Set([...prev, todayStr]));
+    
+    setRows(nextRows);
     clearMobileForm();
+
+    startSave(async () => {
+      await persistRows(nextRows);
+    });
   };
 
   const updateMobileForm = (field: keyof MobileFormState, value: string) => {
@@ -733,6 +773,7 @@ export function CallReportPanel({
                               e.target.value,
                             )
                           }
+                          onBlur={handleInputBlur}
                           className={`${cellInput} font-semibold`}
                         />
                       </td>
@@ -744,6 +785,7 @@ export function CallReportPanel({
                           onChange={(e) =>
                             updateRow(row.rowId, "phone", e.target.value)
                           }
+                          onBlur={handleInputBlur}
                           className={cellInput}
                         />
                       </td>
@@ -755,6 +797,7 @@ export function CallReportPanel({
                           onChange={(e) =>
                             updateRow(row.rowId, "province", e.target.value)
                           }
+                          onBlur={handleInputBlur}
                           className={cellInput}
                         />
                       </td>
@@ -764,7 +807,7 @@ export function CallReportPanel({
                           portal
                           value={row.trailer_type}
                           onChange={(v) =>
-                            updateRow(row.rowId, "trailer_type", v)
+                            updateRow(row.rowId, "trailer_type", v, true)
                           }
                           options={TRAILER_TYPE_OPTIONS}
                           placeholder="—"
@@ -778,6 +821,7 @@ export function CallReportPanel({
                           onChange={(e) =>
                             updateRow(row.rowId, "price_quote", e.target.value)
                           }
+                          onBlur={handleInputBlur}
                           className={cellInput}
                         />
                       </td>
@@ -793,6 +837,7 @@ export function CallReportPanel({
                               e.target.value,
                             )
                           }
+                          onBlur={handleInputBlur}
                           className={cellInput}
                         />
                       </td>

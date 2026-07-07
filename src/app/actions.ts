@@ -1613,6 +1613,9 @@ export async function saveMarketingReports(params: {
 
   let targetUserId = profile.id;
   if (params.userId && params.userId !== profile.id) {
+    if (params.userId === "all") {
+      return { error: "Không thể lưu báo cáo khi đang chọn 'Tất cả nhân sự'." };
+    }
     if (profile.role !== "admin") {
       return { error: "Unauthorized" };
     }

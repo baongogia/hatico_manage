@@ -19,6 +19,7 @@ import { DEFAULT_BG_URL } from "./page-background";
 import AdminSelect from "./admin-select";
 import { downloadMarketingReportExcel } from "@/lib/marketing-report-export";
 import { MarketingExcelPreviewModal } from "./marketing-excel-preview-modal";
+import DatePickerModal from "./date-picker-modal";
 
 const TRAILER_TYPE_OPTIONS = [
   { value: "", label: "—" },
@@ -41,6 +42,7 @@ const PLATFORM_OPTIONS = [
   { value: "Tiktok", label: "Tiktok" },
   { value: "Facebook", label: "Facebook" },
   { value: "Youtube", label: "Youtube" },
+  { value: "Website", label: "Website" },
 ];
 
 const STATUS_OPTIONS = [
@@ -49,6 +51,30 @@ const STATUS_OPTIONS = [
   { value: "pending", label: "Chờ duyệt" },
 ];
 
+const TikTokIcon = (
+  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.74-.22-.23-.45-.48-.64-.73v7.28c-.08 3.26-2.01 6.34-5.11 7.4-3.1 1.13-6.85.34-9.06-2-2.31-2.39-2.73-6.27-1.02-9.14 1.7-2.92 5.29-4.48 8.59-3.79v4.2c-1.84-.46-3.87.21-4.79 1.83-.97 1.67-.54 3.98 1.02 5.16 1.54 1.19 3.93.98 5.2-.44.59-.65.75-1.51.74-2.36.01-4.07.01-8.14.01-12.21-.01-.32-.03-.64-.03-.96z" />
+  </svg>
+);
+
+const FacebookIcon = (
+  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
+
+const YouTubeIcon = (
+  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.388.51a3.004 3.004 0 0 0-2.11 2.108C0 8.028 0 12 0 12s0 3.972.502 5.837a3.003 3.003 0 0 0 2.11 2.108C4.475 20.455 12 20.455 12 20.455s7.524 0 9.388-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.972 24 12 24 12s0-3.972-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+  </svg>
+);
+
+const WebsiteIcon = (
+  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.4z" />
+  </svg>
+);
+
 const cellInput =
   "w-full min-w-[4.5rem] min-h-[2rem] px-2 py-1.5 text-xs text-slate-900 bg-white border border-slate-200/80 rounded focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary/50";
 
@@ -56,9 +82,9 @@ const mobileFormInput =
   "input-compact w-full h-7 px-2 text-slate-900 bg-white border border-slate-200/70 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 placeholder:text-slate-400";
 
 const toolbarBtn =
-  "inline-flex items-center justify-center shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg text-[10px] sm:text-xs font-bold touch-manipulation transition-colors cursor-pointer";
+  "inline-flex items-center justify-center shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-[6px] text-[10px] sm:text-xs font-bold touch-manipulation transition-colors cursor-pointer";
 
-type MobilePostFormState = Omit<MarketingPostEntry, "type">;
+type MobilePostFormState = Omit<MarketingPostEntry, "type"> & { report_date: string };
 type MobileEventFormState = Omit<MarketingEventEntry, "type">;
 
 type EditablePostRow = MarketingPostRow & { rowId: string };
@@ -92,6 +118,7 @@ function emptyMobilePostForm(): MobilePostFormState {
     comments: "",
     shares: "",
     status: "completed",
+    report_date: new Date().toISOString().split("T")[0],
   };
 }
 
@@ -151,11 +178,77 @@ export function MarketingReportPanel({
   const isAdmin = profile.role === "admin";
 
   const [period, setPeriod] = useState<CallReportPeriod>("week");
-  const [selectedStaffId, setSelectedStaffId] = useState<string>("all");
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(profile.id);
   const [activeSubTab, setActiveSubTab] = useState<"posts" | "events">("posts");
 
   const [posts, setPosts] = useState<EditablePostRow[]>([]);
   const [events, setEvents] = useState<EditableEventRow[]>([]);
+
+  const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterDay, setFilterDay] = useState<string>("all");
+  const [filterPlatform, setFilterPlatform] = useState<string>("all");
+
+  const monthOptions = useMemo(() => {
+    const options = [{ value: "all", label: "Tất cả các tháng" }];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      options.push({
+        value: `${yyyy}-${mm}`,
+        label: `Tháng ${mm}/${yyyy}`,
+      });
+    }
+    return options;
+  }, []);
+
+  const daysInMonth = useMemo(() => {
+    if (filterMonth === "all") return [];
+    const [yyyy, mm] = filterMonth.split("-").map(Number);
+    const lastDay = new Date(yyyy, mm, 0).getDate();
+    return Array.from({ length: lastDay }, (_, i) => {
+      const d = i + 1;
+      const date = new Date(yyyy, mm - 1, d);
+      const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+      return {
+        dayStr: String(d).padStart(2, "0"),
+        label: `${d}`,
+        dayName: dayNames[date.getDay()],
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+      };
+    });
+  }, [filterMonth]);
+
+  const displayedPosts = useMemo(() => {
+    return posts.filter((post) => {
+      if (filterMonth !== "all") {
+        if (!post.report_date.startsWith(filterMonth)) return false;
+      }
+      if (filterDay !== "all") {
+        const dayStr = post.report_date.slice(8, 10);
+        if (dayStr !== filterDay) return false;
+      }
+      if (filterPlatform !== "all") {
+        if (post.platform !== filterPlatform) return false;
+      }
+      return true;
+    });
+  }, [posts, filterMonth, filterDay, filterPlatform]);
+
+  const displayedEvents = useMemo(() => {
+    return events.filter((event) => {
+      if (filterMonth !== "all") {
+        if (!event.event_date.startsWith(filterMonth)) return false;
+      }
+      if (filterDay !== "all") {
+        const dayStr = event.event_date.slice(8, 10);
+        if (dayStr !== filterDay) return false;
+      }
+      return true;
+    });
+  }, [events, filterMonth, filterDay]);
+
   const [marketingStaff, setMarketingStaff] = useState<{ id: string; full_name: string }[]>([]);
 
   const [loadedPostDates, setLoadedPostDates] = useState<Set<string>>(new Set());
@@ -176,6 +269,12 @@ export function MarketingReportPanel({
   const [editingEventRowId, setEditingEventRowId] = useState<string | null>(
     null,
   );
+
+  const [activeDatePicker, setActiveDatePicker] = useState<{
+    type: "post" | "event" | "post-mobile" | "event-mobile";
+    rowId: string;
+    value: string;
+  } | null>(null);
 
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSave] = useTransition();
@@ -218,8 +317,42 @@ export function MarketingReportPanel({
     fetchedEvents: MarketingEventRow[],
     staffList?: { id: string; full_name: string }[],
   ) => {
-    setPosts(toEditablePostRows(fetchedPosts));
-    setEvents(toEditableEventRows(fetchedEvents));
+    setPosts((prev) => {
+      const savedPosts = toEditablePostRows(fetchedPosts);
+      const unsaved = prev.filter((p) => {
+        if (!p.rowId.startsWith("new-")) return false;
+        // Keep if completely empty
+        if (!p.title.trim() && !p.link.trim() && !p.views.trim() && !p.likes.trim()) return true;
+        // Check if already saved
+        const isSaved = savedPosts.some((sp) =>
+          sp.title === p.title &&
+          sp.platform === p.platform &&
+          sp.link === p.link &&
+          sp.report_date === p.report_date
+        );
+        return !isSaved;
+      });
+      return [...savedPosts, ...unsaved];
+    });
+
+    setEvents((prev) => {
+      const savedEvents = toEditableEventRows(fetchedEvents);
+      const unsaved = prev.filter((e) => {
+        if (!e.rowId.startsWith("new-")) return false;
+        // Keep if completely empty
+        if (!e.event_name.trim() && !e.location?.trim() && !e.budget.trim() && !e.qty?.trim()) return true;
+        // Check if already saved
+        const isSaved = savedEvents.some((se) =>
+          se.event_name === e.event_name &&
+          se.event_date === e.event_date &&
+          se.location === e.location &&
+          se.budget === e.budget
+        );
+        return !isSaved;
+      });
+      return [...savedEvents, ...unsaved];
+    });
+
     setLoadedPostDates(new Set(fetchedPosts.map((p) => p.report_date)));
     setLoadedEventDates(new Set(fetchedEvents.map((e) => e.report_date)));
     if (staffList) {
@@ -245,6 +378,7 @@ export function MarketingReportPanel({
     loadReports(period, selectedStaffId);
   }, []);
 
+
   const handlePeriodChange = (value: CallReportPeriod) => {
     setPeriod(value);
     loadReports(value, selectedStaffId);
@@ -260,6 +394,7 @@ export function MarketingReportPanel({
     let tiktok = 0;
     let facebook = 0;
     let youtube = 0;
+    let website = 0;
     let views = 0;
     let likes = 0;
 
@@ -268,6 +403,7 @@ export function MarketingReportPanel({
       if (p.platform === "Tiktok") tiktok++;
       else if (p.platform === "Facebook") facebook++;
       else if (p.platform === "Youtube") youtube++;
+      else if (p.platform === "Website") website++;
 
       const v = parseInt(p.views.replace(/[^0-9]/g, "")) || 0;
       const l = parseInt(p.likes.replace(/[^0-9]/g, "")) || 0;
@@ -276,10 +412,11 @@ export function MarketingReportPanel({
     });
 
     return {
-      total: tiktok + facebook + youtube,
+      total: tiktok + facebook + youtube + website,
       tiktok,
       facebook,
       youtube,
+      website,
       views,
       likes,
     };
@@ -309,12 +446,24 @@ export function MarketingReportPanel({
   // Editing logic for Posts
   const updatePostRow = (
     rowId: string,
-    field: keyof Omit<MarketingPostEntry, "type">,
+    field: keyof Omit<EditablePostRow, "type" | "rowId">,
     value: string,
+    shouldSave = false,
   ) => {
-    setPosts((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r)),
-    );
+    setPosts((prev) => {
+      const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
+      if (shouldSave) {
+        const editedRow = next.find((r) => r.rowId === rowId);
+        if (editedRow && editedRow.title.trim()) {
+          setTimeout(() => {
+            startSave(async () => {
+              await persistReports(next, events);
+            });
+          }, 0);
+        }
+      }
+      return next;
+    });
   };
 
   const handleAddPostRow = () => {
@@ -334,10 +483,10 @@ export function MarketingReportPanel({
   };
 
   const toggleSelectAllPosts = () => {
-    if (selectedPosts.size === posts.length) {
+    if (selectedPosts.size === displayedPosts.length) {
       setSelectedPosts(new Set());
     } else {
-      setSelectedPosts(new Set(posts.map((r) => r.rowId)));
+      setSelectedPosts(new Set(displayedPosts.map((r) => r.rowId)));
     }
   };
 
@@ -346,10 +495,22 @@ export function MarketingReportPanel({
     rowId: string,
     field: keyof Omit<MarketingEventEntry, "type">,
     value: string,
+    shouldSave = false,
   ) => {
-    setEvents((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r)),
-    );
+    setEvents((prev) => {
+      const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
+      if (shouldSave) {
+        const editedRow = next.find((r) => r.rowId === rowId);
+        if (editedRow && editedRow.event_name.trim()) {
+          setTimeout(() => {
+            startSave(async () => {
+              await persistReports(posts, next);
+            });
+          }, 0);
+        }
+      }
+      return next;
+    });
   };
 
   const handleAddEventRow = () => {
@@ -369,10 +530,20 @@ export function MarketingReportPanel({
   };
 
   const toggleSelectAllEvents = () => {
-    if (selectedEvents.size === events.length) {
+    if (selectedEvents.size === displayedEvents.length) {
       setSelectedEvents(new Set());
     } else {
-      setSelectedEvents(new Set(events.map((r) => r.rowId)));
+      setSelectedEvents(new Set(displayedEvents.map((r) => r.rowId)));
+    }
+  };
+
+  const handleMarketingBlur = () => {
+    const hasValidPosts = posts.some((p) => p.title.trim());
+    const hasValidEvents = events.some((e) => e.event_name.trim());
+    if (hasValidPosts || hasValidEvents) {
+      startSave(async () => {
+        await persistReports(posts, events);
+      });
     }
   };
 
@@ -384,24 +555,26 @@ export function MarketingReportPanel({
     }
     setErrorMsg("");
 
+    let nextPosts: EditablePostRow[];
     if (editingPostRowId) {
-      setPosts((prev) =>
-        prev.map((r) =>
-          r.rowId === editingPostRowId ? { ...r, ...mobilePostForm } : r,
-        ),
+      nextPosts = posts.map((r) =>
+        r.rowId === editingPostRowId ? { ...r, ...mobilePostForm } : r,
       );
-      setEditingPostRowId(null);
-      setMobilePostForm(emptyMobilePostForm());
-      return;
+    } else {
+      const row: EditablePostRow = {
+        ...newEmptyPostRow(todayStr),
+        ...mobilePostForm,
+      };
+      nextPosts = [...posts, row];
+      setLoadedPostDates((prev) => new Set([...prev, todayStr]));
     }
-
-    const row: EditablePostRow = {
-      ...newEmptyPostRow(todayStr),
-      ...mobilePostForm,
-    };
-    setPosts((prev) => [...prev, row]);
-    setLoadedPostDates((prev) => new Set([...prev, todayStr]));
+    setPosts(nextPosts);
+    setEditingPostRowId(null);
     setMobilePostForm(emptyMobilePostForm());
+
+    startSave(async () => {
+      await persistReports(nextPosts, events);
+    });
   };
 
   const handleMobileEventSubmit = () => {
@@ -411,24 +584,26 @@ export function MarketingReportPanel({
     }
     setErrorMsg("");
 
+    let nextEvents: EditableEventRow[];
     if (editingEventRowId) {
-      setEvents((prev) =>
-        prev.map((r) =>
-          r.rowId === editingEventRowId ? { ...r, ...mobileEventForm } : r,
-        ),
+      nextEvents = events.map((r) =>
+        r.rowId === editingEventRowId ? { ...r, ...mobileEventForm } : r,
       );
-      setEditingEventRowId(null);
-      setMobileEventForm(emptyMobileEventForm());
-      return;
+    } else {
+      const row: EditableEventRow = {
+        ...newEmptyEventRow(mobileEventForm.event_date || todayStr),
+        ...mobileEventForm,
+      };
+      nextEvents = [...events, row];
+      setLoadedEventDates((prev) => new Set([...prev, row.event_date]));
     }
-
-    const row: EditableEventRow = {
-      ...newEmptyEventRow(mobileEventForm.event_date || todayStr),
-      ...mobileEventForm,
-    };
-    setEvents((prev) => [...prev, row]);
-    setLoadedEventDates((prev) => new Set([...prev, row.event_date]));
+    setEvents(nextEvents);
+    setEditingEventRowId(null);
     setMobileEventForm(emptyMobileEventForm());
+
+    startSave(async () => {
+      await persistReports(posts, nextEvents);
+    });
   };
 
   // Persistence (save/delete)
@@ -625,29 +800,10 @@ export function MarketingReportPanel({
                 Báo cáo phòng Marketing
               </h2>
               <p className="text-[10px] text-white/70 mt-0.5 truncate">
-                {isAdmin
-                  ? "Bảng tổng hợp quản trị Marketing"
-                  : `${profile.full_name} · Phòng Marketing`}
+                {profile.full_name} · Phòng Marketing
               </p>
             </div>
             <div className="shrink-0 flex items-center gap-2">
-              {isAdmin && (
-                <>
-                  <span className="text-[10px] font-bold text-white/80">Nhân viên:</span>
-                  <AdminSelect
-                    compact
-                    value={selectedStaffId}
-                    onChange={handleStaffChange}
-                    options={[
-                      { value: "all", label: "Tất cả nhân sự" },
-                      ...marketingStaff.map((s) => ({
-                        value: s.id,
-                        label: s.full_name,
-                      })),
-                    ]}
-                  />
-                </>
-              )}
               <button
                 type="button"
                 onClick={handleExportExcel}
@@ -676,117 +832,250 @@ export function MarketingReportPanel({
         </div>
       </div>
 
-      {/* Metrics Cards (styled strictly in dark blue primary `#0f2d59`) */}
-      <div className={`shrink-0 ${layoutPad} pb-1`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Post Metrics Card */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-            <div className="flex justify-between items-center border-b border-slate-200/50 pb-1.5 mb-2">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wide">
-                Hiệu suất đăng bài
-              </span>
-              <span className="text-xs font-bold text-primary">
-                {postMetrics.total} bài viết
-              </span>
+      {/* Integrated Metrics & Filters Dashboard Panel */}
+      <div className={`shrink-0 ${layoutPad} pb-1.5`}>
+        <div className="flex flex-col gap-3.5 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 shadow-xs">
+          {/* Top Row: Metrics (split into 2 equal columns on medium+ screens) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Column 1: Hiệu suất Đăng bài */}
+            <div className="flex flex-col gap-1.5 justify-center">
+              <div className="flex justify-between items-center border-b border-slate-200/60 pb-1">
+                <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider">
+                  Đăng bài
+                </span>
+                <span className="text-xs font-bold text-primary">
+                  {postMetrics.total} bài
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1 text-center">
+                <div>
+                  <p className="text-xs font-extrabold text-primary">{postMetrics.tiktok}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Tiktok</p>
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-primary">{postMetrics.facebook}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Facebook</p>
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-primary">{postMetrics.youtube}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Youtube</p>
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-primary">{postMetrics.website}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Website</p>
+                </div>
+                <div className="border-l border-slate-200/50">
+                  <p className="text-xs font-extrabold text-primary">
+                    {postMetrics.views >= 1000
+                      ? `${(postMetrics.views / 1000).toFixed(1)}k`
+                      : postMetrics.views}
+                  </p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Xem</p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div>
-                <p className="text-[14px] font-bold text-primary">
-                  {postMetrics.tiktok}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Tiktok</p>
+
+            {/* Column 2: Sự kiện & Bàn giao */}
+            <div className="flex flex-col gap-1.5 justify-center border-t md:border-t-0 md:border-l border-slate-200/60 pt-2.5 md:pt-0 md:pl-4">
+              <div className="flex justify-between items-center border-b border-slate-200/60 pb-1">
+                <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider">
+                  Sự kiện
+                </span>
+                <span className="text-xs font-bold text-primary">
+                  {eventMetrics.total} sự kiện
+                </span>
               </div>
-              <div>
-                <p className="text-[14px] font-bold text-primary">
-                  {postMetrics.facebook}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Facebook</p>
-              </div>
-              <div>
-                <p className="text-[14px] font-bold text-primary">
-                  {postMetrics.youtube}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Youtube</p>
-              </div>
-              <div className="border-l border-slate-200/80">
-                <p className="text-[14px] font-bold text-primary">
-                  {postMetrics.views >= 1000
-                    ? `${(postMetrics.views / 1000).toFixed(1)}k`
-                    : postMetrics.views}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Xem</p>
+              <div className="grid grid-cols-3 gap-1 text-center">
+                <div>
+                  <p className="text-xs font-extrabold text-primary">{eventMetrics.total}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Sự kiện</p>
+                </div>
+                <div className="border-l border-r border-slate-200/50">
+                  <p className="text-xs font-extrabold text-primary">{eventMetrics.attendees}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide font-sans">Tham gia</p>
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-primary truncate px-0.5">{eventMetrics.budget || 0}</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Chi phí</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Event Metrics Card */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-            <div className="flex justify-between items-center border-b border-slate-200/50 pb-1.5 mb-2">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wide">
-                Sự kiện đã thực hiện
-              </span>
-              <span className="text-xs font-bold text-primary">
-                {eventMetrics.total} sự kiện
+          {/* Middle Row: Filters & Platform Selectors (flex container, full width) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/50 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Sub-tab selection */}
+              <div
+                className="flex items-center gap-0.5 bg-slate-200/60 p-0.5 rounded-[6px] border border-slate-300/40 shrink-0 h-8"
+                role="group"
+                aria-label="Chọn loại dữ liệu"
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab("posts")}
+                  className={`px-3 h-full rounded-[4px] text-xs font-bold cursor-pointer transition-colors ${
+                    activeSubTab === "posts"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Đăng bài
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab("events")}
+                  className={`px-3 h-full rounded-[4px] text-xs font-bold cursor-pointer transition-colors ${
+                    activeSubTab === "events"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Sự kiện
+                </button>
+              </div>
+
+              <AdminSelect
+                compact
+                value={filterMonth}
+                onChange={(v) => {
+                  setFilterMonth(v);
+                  setFilterDay("all");
+                }}
+                options={monthOptions}
+                className="w-40 shrink-0"
+              />
+              <span className="flex items-center justify-center h-8 px-2.5 rounded-[4px] text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/15 whitespace-nowrap">
+                {activeSubTab === "posts" 
+                  ? `${displayedPosts.length} / ${posts.length} bài` 
+                  : `${displayedEvents.length} / ${events.length} sự kiện`}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-[14px] font-bold text-primary">
-                  {eventMetrics.total}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Sự kiện</p>
+
+            {/* Platform Selector Buttons (for Posts only) */}
+            {activeSubTab === "posts" && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setFilterPlatform("all")}
+                  className={`px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-all duration-200 cursor-pointer shadow-2xs ${
+                    filterPlatform === "all"
+                      ? "bg-primary border-primary text-white scale-[1.02] shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterPlatform("Tiktok")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-all duration-200 cursor-pointer shadow-2xs ${
+                    filterPlatform === "Tiktok"
+                      ? "bg-[#fe2c55]/10 border-[#fe2c55]/30 text-[#fe2c55] scale-[1.02] shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {TikTokIcon}
+                  <span className="font-sans">TikTok</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterPlatform("Facebook")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-all duration-200 cursor-pointer shadow-2xs ${
+                    filterPlatform === "Facebook"
+                      ? "bg-[#1877f2]/10 border-[#1877f2]/30 text-[#1877f2] scale-[1.02] shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {FacebookIcon}
+                  <span className="font-sans">Facebook</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterPlatform("Youtube")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-all duration-200 cursor-pointer shadow-2xs ${
+                    filterPlatform === "Youtube"
+                      ? "bg-[#ff0000]/10 border-[#ff0000]/30 text-[#ff0000] scale-[1.02] shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {YouTubeIcon}
+                  <span className="font-sans">YouTube</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterPlatform("Website")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-bold border transition-all duration-200 cursor-pointer shadow-2xs ${
+                    filterPlatform === "Website"
+                      ? "bg-slate-700/10 border-slate-700/30 text-slate-800 scale-[1.02] shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {WebsiteIcon}
+                  <span className="font-sans">Website</span>
+                </button>
               </div>
-              <div className="border-l border-r border-slate-200/80">
-                <p className="text-[14px] font-bold text-primary">
-                  {eventMetrics.attendees}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold font-sans">
-                  Tham gia
-                </p>
-              </div>
-              <div>
-                <p className="text-[14px] font-bold text-primary truncate px-1">
-                  {eventMetrics.budget || 0}
-                </p>
-                <p className="text-[9px] text-slate-500 font-semibold">Chi phí</p>
-              </div>
-            </div>
+            )}
           </div>
+
+          {/* Bottom Row: Horizontal Day Scroller (Spans Full Width, Only when month is active) */}
+          {filterMonth !== "all" && daysInMonth.length > 0 && (
+            <div className="border-t border-slate-200/50 pt-2 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                  Chọn ngày báo cáo:
+                </span>
+                {filterDay !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterDay("all")}
+                    className="text-[8px] font-bold text-primary hover:underline cursor-pointer"
+                  >
+                    Tất cả ngày trong tháng
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar scroll-smooth">
+                <button
+                  type="button"
+                  onClick={() => setFilterDay("all")}
+                  className={`shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
+                    filterDay === "all"
+                      ? "bg-primary border-primary text-white font-bold shadow-xs"
+                      : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <span className="text-[7px] uppercase font-bold opacity-75">Tất</span>
+                  <span className="text-[9px] font-extrabold">Cả</span>
+                </button>
+                {daysInMonth.map((day) => (
+                  <button
+                    key={day.dayStr}
+                    type="button"
+                    onClick={() => setFilterDay(day.dayStr)}
+                    className={`shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
+                      filterDay === day.dayStr
+                        ? "bg-primary border-primary text-white font-bold shadow-xs"
+                        : day.isWeekend
+                          ? "bg-amber-50/70 border-amber-200/80 text-amber-800 hover:bg-amber-100/80"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <span className={`text-[7px] uppercase font-bold ${filterDay === day.dayStr ? "text-white/90" : "text-slate-400"}`}>
+                      {day.dayName}
+                    </span>
+                    <span className="text-[9px] font-extrabold">{day.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Toolbar / Actions & Filters */}
       <div className={`shrink-0 ${layoutPad} flex flex-col ${layoutGap} pt-1`}>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2">
-          {/* Sub-tab selection */}
-          <div
-            className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/60"
-            role="group"
-            aria-label="Chọn loại dữ liệu"
-          >
-            <button
-              type="button"
-              onClick={() => setActiveSubTab("posts")}
-              className={`px-3 py-1 rounded-md text-[10px] sm:text-xs font-bold cursor-pointer transition-colors ${
-                activeSubTab === "posts"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Đăng bài
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSubTab("events")}
-              className={`px-3 py-1 rounded-md text-[10px] sm:text-xs font-bold cursor-pointer transition-colors ${
-                activeSubTab === "events"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Sự kiện
-            </button>
-          </div>
 
           <button
             type="button"
@@ -871,7 +1160,7 @@ export function MarketingReportPanel({
                     onChange={(v) =>
                       setMobilePostForm((p) => ({
                         ...p,
-                        platform: v as "Tiktok" | "Facebook" | "Youtube",
+                        platform: v as "Tiktok" | "Facebook" | "Youtube" | "Website",
                       }))
                     }
                     options={PLATFORM_OPTIONS}
@@ -935,20 +1224,24 @@ export function MarketingReportPanel({
                 </label>
                 <label className="space-y-0.5">
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Trạng thái
+                    Ngày nộp
                   </span>
-                  <AdminSelect
-                    micro
-                    portal
-                    value={mobilePostForm.status}
-                    onChange={(v) =>
-                      setMobilePostForm((p) => ({
-                        ...p,
-                        status: v as "completed" | "in_progress" | "pending",
-                      }))
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveDatePicker({
+                        type: "post-mobile",
+                        rowId: "",
+                        value: mobilePostForm.report_date,
+                      })
                     }
-                    options={STATUS_OPTIONS}
-                  />
+                    className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
+                  >
+                    <span className="font-sans font-medium">{formatDateDisplay(mobilePostForm.report_date)}</span>
+                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                 </label>
               </div>
               <div className="flex gap-1.5 pt-0.5">
@@ -1000,17 +1293,22 @@ export function MarketingReportPanel({
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
                     Ngày thực hiện
                   </span>
-                  <input
-                    type="date"
-                    value={mobileEventForm.event_date}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        event_date: e.target.value,
-                      }))
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveDatePicker({
+                        type: "event-mobile",
+                        rowId: "",
+                        value: mobileEventForm.event_date,
+                      })
                     }
-                    className={mobileFormInput}
-                  />
+                    className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
+                  >
+                    <span className="font-sans font-medium">{formatDateDisplay(mobileEventForm.event_date)}</span>
+                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                 </label>
                 <label className="space-y-0.5">
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
@@ -1197,6 +1495,7 @@ export function MarketingReportPanel({
                             comments: row.comments,
                             shares: row.shares,
                             status: row.status,
+                            report_date: row.report_date,
                           });
                           setEditingPostRowId(row.rowId);
                           setErrorMsg("");
@@ -1270,24 +1569,16 @@ export function MarketingReportPanel({
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-20">
                         Lượt thích
                       </th>
-                      <th className="px-2 py-2 font-bold text-center border border-white/15 w-28">
-                        Trạng thái
-                      </th>
-                      {isAdmin && (
-                        <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
-                          Người tạo
-                        </th>
-                      )}
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
                         Ngày nộp
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {posts.length === 0 ? (
+                    {displayedPosts.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={isAdmin ? 9 : 8}
+                          colSpan={7}
                           className="px-3 py-10 text-center text-slate-400 italic border border-slate-200/80"
                         >
                           Chưa có dòng bài đăng — bấm &quot;Thêm dòng&quot; để
@@ -1295,7 +1586,7 @@ export function MarketingReportPanel({
                         </td>
                       </tr>
                     ) : (
-                      posts.map((row, i) => (
+                      displayedPosts.map((row, i) => (
                         <tr
                           key={row.rowId}
                           className={`${
@@ -1316,15 +1607,56 @@ export function MarketingReportPanel({
                             />
                           </td>
                           <td className="p-1 border border-slate-200/80">
-                            <AdminSelect
-                              compact
-                              portal
-                              value={row.platform}
-                              onChange={(v) =>
-                                updatePostRow(row.rowId, "platform", v as "Tiktok" | "Facebook" | "Youtube")
-                              }
-                              options={PLATFORM_OPTIONS}
-                            />
+                            <div className="flex items-center justify-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
+                              <button
+                                type="button"
+                                onClick={() => updatePostRow(row.rowId, "platform", "Tiktok", true)}
+                                title="Tiktok"
+                                className={`p-1 rounded transition-all cursor-pointer ${
+                                  row.platform === "Tiktok"
+                                    ? "bg-[#fe2c55]/10 text-[#fe2c55] scale-110"
+                                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {TikTokIcon}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePostRow(row.rowId, "platform", "Facebook", true)}
+                                title="Facebook"
+                                className={`p-1 rounded transition-all cursor-pointer ${
+                                  row.platform === "Facebook"
+                                    ? "bg-[#1877f2]/10 text-[#1877f2] scale-110"
+                                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {FacebookIcon}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePostRow(row.rowId, "platform", "Youtube", true)}
+                                title="Youtube"
+                                className={`p-1 rounded transition-all cursor-pointer ${
+                                  row.platform === "Youtube"
+                                    ? "bg-[#ff0000]/10 text-[#ff0000] scale-110"
+                                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {YouTubeIcon}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePostRow(row.rowId, "platform", "Website", true)}
+                                title="Website"
+                                className={`p-1 rounded transition-all cursor-pointer ${
+                                  row.platform === "Website"
+                                    ? "bg-slate-700/15 text-slate-800 scale-110"
+                                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {WebsiteIcon}
+                              </button>
+                            </div>
                           </td>
                           <td className="p-1 border border-slate-200/80">
                             <input
@@ -1338,6 +1670,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "title", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={`${cellInput} font-semibold`}
                             />
                           </td>
@@ -1349,6 +1682,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "link", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1360,6 +1694,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "views", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1371,27 +1706,27 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "likes", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
-                          <td className="p-1 border border-slate-200/80">
-                            <AdminSelect
-                              compact
-                              portal
-                              value={row.status}
-                              onChange={(v) =>
-                                updatePostRow(row.rowId, "status", v as "completed" | "in_progress" | "pending")
+                          <td className="p-1 border border-slate-200/80 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveDatePicker({
+                                  type: "post",
+                                  rowId: row.rowId,
+                                  value: row.report_date,
+                                })
                               }
-                              options={STATUS_OPTIONS}
-                            />
-                          </td>
-                          {isAdmin && (
-                            <td className="px-2 py-1.5 border border-slate-200/80 text-slate-700 text-center font-medium truncate max-w-[5rem]">
-                              {row.author_name || "—"}
-                            </td>
-                          )}
-                          <td className="px-2 py-1.5 border border-slate-200/80 text-slate-500 text-center text-[10px] whitespace-nowrap">
-                            {formatDateDisplay(row.report_date)}
+                              className="flex items-center justify-between px-2 py-1.5 text-xs text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50/80 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full min-h-[2rem]"
+                            >
+                              <span className="font-sans font-medium text-slate-700">{formatDateDisplay(row.report_date)}</span>
+                              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -1538,21 +1873,13 @@ export function MarketingReportPanel({
                       <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[8rem]">
                         Kết quả đạt được
                       </th>
-                      <th className="px-2 py-2 font-bold text-center border border-white/15 w-28">
-                        Trạng thái
-                      </th>
-                      {isAdmin && (
-                        <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
-                          Người tạo
-                        </th>
-                      )}
                     </tr>
                   </thead>
                   <tbody>
-                    {events.length === 0 ? (
+                    {displayedEvents.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={isAdmin ? 11 : 10}
+                          colSpan={9}
                           className="px-3 py-10 text-center text-slate-400 italic border border-slate-200/80"
                         >
                           Chưa có dòng sự kiện — bấm &quot;Thêm dòng&quot; để
@@ -1560,7 +1887,7 @@ export function MarketingReportPanel({
                         </td>
                       </tr>
                     ) : (
-                      events.map((row, i) => (
+                      displayedEvents.map((row, i) => (
                         <tr
                           key={row.rowId}
                           className={`${
@@ -1596,22 +1923,27 @@ export function MarketingReportPanel({
                                   e.target.value,
                                 )
                               }
+                              onBlur={handleMarketingBlur}
                               className={`${cellInput} font-semibold`}
                             />
                           </td>
                           <td className="p-1 border border-slate-200/80">
-                            <input
-                              type="date"
-                              value={row.event_date}
-                              onChange={(e) =>
-                                updateEventRow(
-                                  row.rowId,
-                                  "event_date",
-                                  e.target.value,
-                                )
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveDatePicker({
+                                  type: "event",
+                                  rowId: row.rowId,
+                                  value: row.event_date,
+                                })
                               }
-                              className={cellInput}
-                            />
+                              className="flex items-center justify-between px-2 py-1.5 text-xs text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50/80 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full min-h-[2rem]"
+                            >
+                              <span className="font-sans font-medium text-slate-700">{formatDateDisplay(row.event_date)}</span>
+                              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </button>
                           </td>
                           <td className="p-1 border border-slate-200/80">
                             <AdminSelect
@@ -1619,7 +1951,7 @@ export function MarketingReportPanel({
                               portal
                               value={row.trailer_type || ""}
                               onChange={(v) =>
-                                updateEventRow(row.rowId, "trailer_type", v)
+                                updateEventRow(row.rowId, "trailer_type", v, true)
                               }
                               options={TRAILER_TYPE_OPTIONS}
                               placeholder="—"
@@ -1633,6 +1965,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updateEventRow(row.rowId, "qty", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1644,6 +1977,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updateEventRow(row.rowId, "location", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1655,6 +1989,7 @@ export function MarketingReportPanel({
                               onChange={(e) =>
                                 updateEventRow(row.rowId, "budget", e.target.value)
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1670,6 +2005,7 @@ export function MarketingReportPanel({
                                   e.target.value,
                                 )
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
@@ -1685,25 +2021,10 @@ export function MarketingReportPanel({
                                   e.target.value,
                                 )
                               }
+                              onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
-                          <td className="p-1 border border-slate-200/80">
-                            <AdminSelect
-                              compact
-                              portal
-                              value={row.status}
-                              onChange={(v) =>
-                                updateEventRow(row.rowId, "status", v as "completed" | "in_progress" | "pending")
-                              }
-                              options={STATUS_OPTIONS}
-                            />
-                          </td>
-                          {isAdmin && (
-                            <td className="px-2 py-1.5 border border-slate-200/80 text-slate-700 text-center font-medium truncate max-w-[5rem]">
-                              {row.author_name || "—"}
-                            </td>
-                          )}
                         </tr>
                       ))
                     )}
@@ -1725,6 +2046,26 @@ export function MarketingReportPanel({
         posts={posts.filter((p) => p.title.trim())}
         events={events.filter((e) => e.event_name.trim())}
       />
+
+      {activeDatePicker && (
+        <DatePickerModal
+          open={!!activeDatePicker}
+          value={activeDatePicker.value}
+          onClose={() => setActiveDatePicker(null)}
+          onSelect={(newDate) => {
+            if (activeDatePicker.type === "post") {
+              updatePostRow(activeDatePicker.rowId, "report_date", newDate, true);
+            } else if (activeDatePicker.type === "event") {
+              updateEventRow(activeDatePicker.rowId, "event_date", newDate, true);
+            } else if (activeDatePicker.type === "post-mobile") {
+              setMobilePostForm((p) => ({ ...p, report_date: newDate }));
+            } else if (activeDatePicker.type === "event-mobile") {
+              setMobileEventForm((p) => ({ ...p, event_date: newDate }));
+            }
+            setActiveDatePicker(null);
+          }}
+        />
+      )}
     </div>
   );
 }
