@@ -626,6 +626,8 @@ export function MarketingReportPanel({
       ...loadedPostDates,
       ...loadedEventDates,
       ...deletedDates,
+      ...currentPosts.filter(p => p.title.trim()).map(p => p.report_date),
+      ...currentEvents.filter(e => e.event_name.trim()).map(e => e.event_date),
     ]);
     if (datesToSave.size === 0) return;
 
