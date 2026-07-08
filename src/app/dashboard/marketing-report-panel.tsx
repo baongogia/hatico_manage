@@ -863,35 +863,53 @@ export function MarketingReportPanel({
             {/* Column 1: Hiệu suất Đăng bài */}
             <div className="flex flex-col gap-1.5 justify-center">
               <div className="flex justify-between items-center border-b border-slate-200/60 pb-1">
-                <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider">
-                  Đăng bài
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider">
+                    Đăng bài
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wide">
+                    KPI Tháng
+                  </span>
+                </div>
                 <span className="text-xs font-bold text-primary">
-                  {postMetrics.total} bài
+                  {postMetrics.total} <span className="text-[10px] text-slate-400 font-semibold">/ 65 bài</span>
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-1 text-center">
                 <div>
-                  <p className="text-xs font-extrabold text-primary">{postMetrics.tiktok}</p>
+                  <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
+                    {postMetrics.tiktok}
+                    <span className="text-[8px] font-semibold text-slate-400">/30</span>
+                  </p>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Tiktok</p>
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-primary">{postMetrics.facebook}</p>
+                  <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
+                    {postMetrics.facebook}
+                    <span className="text-[8px] font-semibold text-slate-400">/25</span>
+                  </p>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Facebook</p>
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-primary">{postMetrics.youtube}</p>
+                  <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
+                    {postMetrics.youtube}
+                    <span className="text-[8px] font-semibold text-slate-400">/8</span>
+                  </p>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Youtube</p>
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-primary">{postMetrics.website}</p>
+                  <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
+                    {postMetrics.website}
+                    <span className="text-[8px] font-semibold text-slate-400">/2</span>
+                  </p>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Website</p>
                 </div>
                 <div className="border-l border-slate-200/50">
-                  <p className="text-xs font-extrabold text-primary">
+                  <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.views >= 1000
                       ? `${(postMetrics.views / 1000).toFixed(1)}k`
                       : postMetrics.views}
+                    <span className="text-[8px] font-semibold text-slate-400">/120k</span>
                   </p>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Xem</p>
                 </div>
