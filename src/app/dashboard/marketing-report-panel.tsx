@@ -285,6 +285,14 @@ export function MarketingReportPanel({
 
   const focusPostRowIdRef = useRef<string | null>(null);
   const focusEventRowIdRef = useRef<string | null>(null);
+  
+  const latestPosts = useRef(posts);
+  const latestEvents = useRef(events);
+  
+  useEffect(() => {
+    latestPosts.current = posts;
+    latestEvents.current = events;
+  }, [posts, events]);
 
   useEffect(() => {
     const pid = focusPostRowIdRef.current;
@@ -457,7 +465,7 @@ export function MarketingReportPanel({
         if (editedRow && editedRow.title.trim()) {
           setTimeout(() => {
             startSave(async () => {
-              await persistReports(next, events);
+              await persistReports(next, latestEvents.current, [], true);
             });
           }, 0);
         }
@@ -504,7 +512,7 @@ export function MarketingReportPanel({
         if (editedRow && editedRow.event_name.trim()) {
           setTimeout(() => {
             startSave(async () => {
-              await persistReports(posts, next);
+              await persistReports(latestPosts.current, next, [], true);
             });
           }, 0);
         }
@@ -538,11 +546,13 @@ export function MarketingReportPanel({
   };
 
   const handleMarketingBlur = () => {
-    const hasValidPosts = posts.some((p) => p.title.trim());
-    const hasValidEvents = events.some((e) => e.event_name.trim());
+    const currentPosts = latestPosts.current;
+    const currentEvents = latestEvents.current;
+    const hasValidPosts = currentPosts.some((p) => p.title.trim());
+    const hasValidEvents = currentEvents.some((e) => e.event_name.trim());
     if (hasValidPosts || hasValidEvents) {
       startSave(async () => {
-        await persistReports(posts, events);
+        await persistReports(currentPosts, currentEvents, [], true);
       });
     }
   };
@@ -606,11 +616,11 @@ export function MarketingReportPanel({
     });
   };
 
-  // Persistence (save/delete)
   const persistReports = async (
     currentPosts: EditablePostRow[],
     currentEvents: EditableEventRow[],
     deletedDates: string[] = [],
+    skipRefresh: boolean = false,
   ) => {
     const datesToSave = new Set([
       ...loadedPostDates,
@@ -685,9 +695,11 @@ export function MarketingReportPanel({
       return;
     }
 
-    const refresh = await getMarketingReports(period, selectedStaffId);
-    if (!("error" in refresh)) {
-      applyFetched(refresh.posts, refresh.events);
+    if (!skipRefresh) {
+      const refresh = await getMarketingReports(period, selectedStaffId);
+      if (!("error" in refresh)) {
+        applyFetched(refresh.posts, refresh.events);
+      }
     }
   };
 
@@ -1200,7 +1212,7 @@ export function MarketingReportPanel({
                   </span>
                   <input
                     type="text"
-                    placeholder="Views"
+                    placeholder=""
                     value={mobilePostForm.views}
                     onChange={(e) =>
                       setMobilePostForm((p) => ({ ...p, views: e.target.value }))
@@ -1214,7 +1226,7 @@ export function MarketingReportPanel({
                   </span>
                   <input
                     type="text"
-                    placeholder="Likes"
+                    placeholder=""
                     value={mobilePostForm.likes}
                     onChange={(e) =>
                       setMobilePostForm((p) => ({ ...p, likes: e.target.value }))
@@ -1224,7 +1236,7 @@ export function MarketingReportPanel({
                 </label>
                 <label className="space-y-0.5">
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Ngày nộp
+                    Ngày
                   </span>
                   <button
                     type="button"
@@ -1570,7 +1582,7 @@ export function MarketingReportPanel({
                         Lượt thích
                       </th>
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
-                        Ngày nộp
+                        Ngày
                       </th>
                     </tr>
                   </thead>
@@ -1689,7 +1701,7 @@ export function MarketingReportPanel({
                           <td className="p-1 border border-slate-200/80">
                             <input
                               type="text"
-                              placeholder="Lượt xem"
+                              placeholder=""
                               value={row.views}
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "views", e.target.value)
@@ -1701,7 +1713,7 @@ export function MarketingReportPanel({
                           <td className="p-1 border border-slate-200/80">
                             <input
                               type="text"
-                              placeholder="Lượt thích"
+                              placeholder=""
                               value={row.likes}
                               onChange={(e) =>
                                 updatePostRow(row.rowId, "likes", e.target.value)
