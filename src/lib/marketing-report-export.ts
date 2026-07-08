@@ -93,8 +93,22 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
   });
   postSheet.getRow(pLine2).height = 32;
 
+  let tiktok = 0, facebook = 0, youtube = 0, website = 0;
+  posts.forEach(p => {
+    if (p.platform.includes("Tiktok")) tiktok++;
+    if (p.platform.includes("Facebook")) facebook++;
+    if (p.platform.includes("Youtube")) youtube++;
+    if (p.platform.includes("Website")) website++;
+  });
+  const platformCounts = [];
+  if (tiktok > 0) platformCounts.push(`Tiktok: ${tiktok}`);
+  if (facebook > 0) platformCounts.push(`Facebook: ${facebook}`);
+  if (youtube > 0) platformCounts.push(`Youtube: ${youtube}`);
+  if (website > 0) platformCounts.push(`Website: ${website}`);
+  const platformStatsStr = platformCounts.length > 0 ? ` (${platformCounts.join(", ")})` : "";
+
   const pLine3 = addMergedLinePost(
-    `Nhân viên: ${staffName}${branchName ? ` · ${branchName}` : ""} · Khoảng: ${PERIOD_LABELS[period]} · Tổng: ${posts.length} bài viết`,
+    `Nhân viên: ${staffName}${branchName ? ` · ${branchName}` : ""} · Khoảng: ${PERIOD_LABELS[period]} · Tổng: ${posts.length} bài viết${platformStatsStr}`,
     {
       font: { size: 10, color: { argb: "FF334155" } },
       alignment: { wrapText: true, vertical: "middle" },
@@ -117,7 +131,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     "Đường dẫn (Link)",
     "Lượt xem",
     "Lượt thích",
-    "Ngày nộp",
+    "Ngày",
   ]);
   styleRow(postHeaderRow, {
     font: { bold: true, size: 10, color: { argb: "FFFFFFFF" } },
@@ -153,6 +167,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
         border: thinBorder,
         alignment: { vertical: "top", wrapText: true },
       });
+      dataRow.getCell(1).alignment = { vertical: "top", horizontal: "center", wrapText: true };
     });
   }
 

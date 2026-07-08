@@ -32,6 +32,20 @@ export function MarketingExcelPreviewModal({
 }: MarketingExcelPreviewModalProps) {
   const [activeTab, setActiveTab] = useState<"posts" | "events">("posts");
 
+  let tiktok = 0, facebook = 0, youtube = 0, website = 0;
+  posts.forEach(p => {
+    if (p.platform.includes("Tiktok")) tiktok++;
+    if (p.platform.includes("Facebook")) facebook++;
+    if (p.platform.includes("Youtube")) youtube++;
+    if (p.platform.includes("Website")) website++;
+  });
+  const platformCounts = [];
+  if (tiktok > 0) platformCounts.push(`Tiktok: ${tiktok}`);
+  if (facebook > 0) platformCounts.push(`Facebook: ${facebook}`);
+  if (youtube > 0) platformCounts.push(`Youtube: ${youtube}`);
+  if (website > 0) platformCounts.push(`Website: ${website}`);
+  const platformStatsStr = platformCounts.length > 0 ? ` (${platformCounts.join(", ")})` : "";
+
   if (!open) return null;
 
   return (
@@ -134,7 +148,7 @@ export function MarketingExcelPreviewModal({
                   3
                 </div>
                 <div className="col-span-5 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
-                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {posts.length} bài viết
+                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]} · Tổng: {posts.length} bài viết{platformStatsStr}
                 </div>
 
                 {/* Row 4: Spacer */}
@@ -147,7 +161,7 @@ export function MarketingExcelPreviewModal({
                 <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-7">
                   5
                 </div>
-                {["Nền tảng", "Tiêu đề / Nội dung bài đăng", "Đường dẫn (Link)", "Lượt xem", "Lượt thích", "Ngày nộp"].map((header, idx) => (
+                {["Nền tảng", "Tiêu đề / Nội dung bài đăng", "Đường dẫn (Link)", "Lượt xem", "Lượt thích", "Ngày"].map((header, idx) => (
                   <div
                     key={idx}
                     className={`bg-[#0f2d59] text-white font-bold px-2 flex items-center h-7 justify-center text-[10px] text-center ${
@@ -179,7 +193,7 @@ export function MarketingExcelPreviewModal({
                         <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] min-h-[28px] py-1.5">
                           {dataRowIndex}
                         </div>
-                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 font-semibold text-slate-900 flex items-start py-1.5 justify-center`}>
+                        <div className={`${rowBg} border-r border-b border-slate-200 px-2 font-semibold text-slate-900 flex items-start py-1.5 justify-center text-center`}>
                           {post.platform}
                         </div>
                         <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-700 flex items-start py-1.5`}>

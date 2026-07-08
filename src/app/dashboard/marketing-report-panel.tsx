@@ -108,6 +108,15 @@ function toEditableEventRows(events: MarketingEventRow[]): EditableEventRow[] {
   }));
 }
 
+function togglePlatform(currentPlatforms: string, platformToToggle: string) {
+  const list = currentPlatforms.split(", ").filter(Boolean);
+  if (list.includes(platformToToggle)) {
+    return list.filter((p) => p !== platformToToggle).join(", ");
+  } else {
+    return [...list, platformToToggle].join(", ");
+  }
+}
+
 function emptyMobilePostForm(): MobilePostFormState {
   return {
     platform: "Tiktok",
@@ -230,7 +239,7 @@ export function MarketingReportPanel({
         if (dayStr !== filterDay) return false;
       }
       if (filterPlatform !== "all") {
-        if (post.platform !== filterPlatform) return false;
+        if (!post.platform.includes(filterPlatform)) return false;
       }
       return true;
     });
@@ -408,10 +417,10 @@ export function MarketingReportPanel({
 
     posts.forEach((p) => {
       if (!p.title.trim()) return;
-      if (p.platform === "Tiktok") tiktok++;
-      else if (p.platform === "Facebook") facebook++;
-      else if (p.platform === "Youtube") youtube++;
-      else if (p.platform === "Website") website++;
+      if (p.platform.includes("Tiktok")) tiktok++;
+      if (p.platform.includes("Facebook")) facebook++;
+      if (p.platform.includes("Youtube")) youtube++;
+      if (p.platform.includes("Website")) website++;
 
       const v = parseInt(p.views.replace(/[^0-9]/g, "")) || 0;
       const l = parseInt(p.likes.replace(/[^0-9]/g, "")) || 0;
@@ -420,7 +429,7 @@ export function MarketingReportPanel({
     });
 
     return {
-      total: tiktok + facebook + youtube + website,
+      total: posts.filter((p) => p.title.trim()).length,
       tiktok,
       facebook,
       youtube,
@@ -1163,22 +1172,60 @@ export function MarketingReportPanel({
                 {editingPostRowId ? "Chỉnh sửa bài đăng" : "Thêm bài đăng mới"}
               </p>
               <div className="grid grid-cols-2 gap-1.5">
-                <label className="space-y-0.5">
+                <label className="space-y-0.5 col-span-2">
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
                     Nền tảng
                   </span>
-                  <AdminSelect
-                    micro
-                    portal
-                    value={mobilePostForm.platform}
-                    onChange={(v) =>
-                      setMobilePostForm((p) => ({
-                        ...p,
-                        platform: v as "Tiktok" | "Facebook" | "Youtube" | "Website",
-                      }))
-                    }
-                    options={PLATFORM_OPTIONS}
-                  />
+                  <div className="flex items-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
+                    <button
+                      type="button"
+                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Tiktok") }))}
+                      title="Tiktok"
+                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                        mobilePostForm.platform.includes("Tiktok")
+                          ? "bg-[#fe2c55]/10 text-[#fe2c55]"
+                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {TikTokIcon}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Facebook") }))}
+                      title="Facebook"
+                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                        mobilePostForm.platform.includes("Facebook")
+                          ? "bg-[#1877f2]/10 text-[#1877f2]"
+                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {FacebookIcon}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Youtube") }))}
+                      title="Youtube"
+                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                        mobilePostForm.platform.includes("Youtube")
+                          ? "bg-[#ff0000]/10 text-[#ff0000]"
+                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {YouTubeIcon}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Website") }))}
+                      title="Website"
+                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                        mobilePostForm.platform.includes("Website")
+                          ? "bg-slate-700/15 text-slate-800"
+                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {WebsiteIcon}
+                    </button>
+                  </div>
                 </label>
                 <label className="space-y-0.5">
                   <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
@@ -1624,10 +1671,10 @@ export function MarketingReportPanel({
                             <div className="flex items-center justify-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", "Tiktok", true)}
+                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Tiktok"), true)}
                                 title="Tiktok"
                                 className={`p-1 rounded transition-all cursor-pointer ${
-                                  row.platform === "Tiktok"
+                                  row.platform.includes("Tiktok")
                                     ? "bg-[#fe2c55]/10 text-[#fe2c55] scale-110"
                                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                 }`}
@@ -1636,10 +1683,10 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", "Facebook", true)}
+                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Facebook"), true)}
                                 title="Facebook"
                                 className={`p-1 rounded transition-all cursor-pointer ${
-                                  row.platform === "Facebook"
+                                  row.platform.includes("Facebook")
                                     ? "bg-[#1877f2]/10 text-[#1877f2] scale-110"
                                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                 }`}
@@ -1648,10 +1695,10 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", "Youtube", true)}
+                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Youtube"), true)}
                                 title="Youtube"
                                 className={`p-1 rounded transition-all cursor-pointer ${
-                                  row.platform === "Youtube"
+                                  row.platform.includes("Youtube")
                                     ? "bg-[#ff0000]/10 text-[#ff0000] scale-110"
                                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                 }`}
@@ -1660,10 +1707,10 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", "Website", true)}
+                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Website"), true)}
                                 title="Website"
                                 className={`p-1 rounded transition-all cursor-pointer ${
-                                  row.platform === "Website"
+                                  row.platform.includes("Website")
                                     ? "bg-slate-700/15 text-slate-800 scale-110"
                                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                 }`}
