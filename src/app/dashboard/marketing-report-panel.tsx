@@ -186,7 +186,7 @@ export function MarketingReportPanel({
   const todayStr = new Date().toISOString().split("T")[0];
   const isAdmin = profile.role === "admin";
 
-  const [period, setPeriod] = useState<CallReportPeriod>("week");
+  const [period, setPeriod] = useState<CallReportPeriod>("month");
   const [selectedStaffId, setSelectedStaffId] = useState<string>(profile.id);
   const [activeSubTab, setActiveSubTab] = useState<"posts" | "events">("posts");
 
@@ -294,6 +294,7 @@ export function MarketingReportPanel({
 
   const focusPostRowIdRef = useRef<string | null>(null);
   const focusEventRowIdRef = useRef<string | null>(null);
+  const dirtyDatesRef = useRef<Set<string>>(new Set());
   
   const latestPosts = useRef(posts);
   const latestEvents = useRef(events);
@@ -384,6 +385,7 @@ export function MarketingReportPanel({
     startTransition(async () => {
       const result = await getMarketingReports(p, sId);
       if (!("error" in result)) {
+        dirtyDatesRef.current = new Set();
         applyFetched(result.posts, result.events, result.marketingStaff);
       } else {
         setErrorMsg(result.error || "Không thể tải báo cáo");
@@ -468,6 +470,12 @@ export function MarketingReportPanel({
     shouldSave = false,
   ) => {
     setPosts((prev) => {
+      const rowToEdit = prev.find(r => r.rowId === rowId);
+      if (rowToEdit) {
+        dirtyDatesRef.current.add(rowToEdit.report_date);
+        if (field === "report_date") dirtyDatesRef.current.add(value);
+      }
+      
       const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
       if (shouldSave) {
         const editedRow = next.find((r) => r.rowId === rowId);
@@ -486,7 +494,8 @@ export function MarketingReportPanel({
   const handleAddPostRow = () => {
     const row = newEmptyPostRow(todayStr);
     focusPostRowIdRef.current = row.rowId;
-    setPosts((prev) => [...prev, row]);
+    dirtyDatesRef.current.add(todayStr);
+    setPosts((prev) => [row, ...prev]);
     setLoadedPostDates((prev) => new Set([...prev, todayStr]));
   };
 
@@ -515,6 +524,12 @@ export function MarketingReportPanel({
     shouldSave = false,
   ) => {
     setEvents((prev) => {
+      const rowToEdit = prev.find(r => r.rowId === rowId);
+      if (rowToEdit) {
+        dirtyDatesRef.current.add(rowToEdit.event_date);
+        if (field === "event_date") dirtyDatesRef.current.add(value);
+      }
+      
       const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
       if (shouldSave) {
         const editedRow = next.find((r) => r.rowId === rowId);
@@ -533,7 +548,8 @@ export function MarketingReportPanel({
   const handleAddEventRow = () => {
     const row = newEmptyEventRow(todayStr);
     focusEventRowIdRef.current = row.rowId;
-    setEvents((prev) => [...prev, row]);
+    dirtyDatesRef.current.add(todayStr);
+    setEvents((prev) => [row, ...prev]);
     setLoadedEventDates((prev) => new Set([...prev, todayStr]));
   };
 
@@ -576,15 +592,21 @@ export function MarketingReportPanel({
 
     let nextPosts: EditablePostRow[];
     if (editingPostRowId) {
+      const rowToEdit = posts.find(r => r.rowId === editingPostRowId);
+      if (rowToEdit) {
+        dirtyDatesRef.current.add(rowToEdit.report_date);
+      }
+      dirtyDatesRef.current.add(mobilePostForm.report_date);
       nextPosts = posts.map((r) =>
         r.rowId === editingPostRowId ? { ...r, ...mobilePostForm } : r,
       );
     } else {
+      dirtyDatesRef.current.add(mobilePostForm.report_date);
       const row: EditablePostRow = {
         ...newEmptyPostRow(todayStr),
         ...mobilePostForm,
       };
-      nextPosts = [...posts, row];
+      nextPosts = [row, ...posts];
       setLoadedPostDates((prev) => new Set([...prev, todayStr]));
     }
     setPosts(nextPosts);
@@ -605,15 +627,21 @@ export function MarketingReportPanel({
 
     let nextEvents: EditableEventRow[];
     if (editingEventRowId) {
+      const rowToEdit = events.find(r => r.rowId === editingEventRowId);
+      if (rowToEdit) {
+        dirtyDatesRef.current.add(rowToEdit.event_date);
+      }
+      dirtyDatesRef.current.add(mobileEventForm.event_date || todayStr);
       nextEvents = events.map((r) =>
         r.rowId === editingEventRowId ? { ...r, ...mobileEventForm } : r,
       );
     } else {
+      dirtyDatesRef.current.add(mobileEventForm.event_date || todayStr);
       const row: EditableEventRow = {
         ...newEmptyEventRow(mobileEventForm.event_date || todayStr),
         ...mobileEventForm,
       };
-      nextEvents = [...events, row];
+      nextEvents = [row, ...events];
       setLoadedEventDates((prev) => new Set([...prev, row.event_date]));
     }
     setEvents(nextEvents);
@@ -631,13 +659,8 @@ export function MarketingReportPanel({
     deletedDates: string[] = [],
     skipRefresh: boolean = false,
   ) => {
-    const datesToSave = new Set([
-      ...loadedPostDates,
-      ...loadedEventDates,
-      ...deletedDates,
-      ...currentPosts.filter(p => p.title.trim()).map(p => p.report_date),
-      ...currentEvents.filter(e => e.event_name.trim()).map(e => e.event_date),
-    ]);
+    deletedDates.forEach(d => dirtyDatesRef.current.add(d));
+    const datesToSave = new Set(dirtyDatesRef.current);
     if (datesToSave.size === 0) return;
 
     // Group items by date
@@ -654,7 +677,11 @@ export function MarketingReportPanel({
       byDate.set(d, { posts: [], events: [] });
     });
 
+    // Clear dirty set (if save fails, we add them back)
+    dirtyDatesRef.current = new Set();
+
     currentPosts.forEach((post) => {
+      if (!datesToSave.has(post.report_date)) return;
       if (!post.title.trim()) return;
       const grp = byDate.get(post.report_date) || { posts: [], events: [] };
       grp.posts.push({
@@ -671,6 +698,7 @@ export function MarketingReportPanel({
     });
 
     currentEvents.forEach((event) => {
+      if (!datesToSave.has(event.event_date)) return;
       if (!event.event_name.trim()) return;
       const grp = byDate.get(event.event_date) || { posts: [], events: [] };
       grp.events.push({
@@ -702,6 +730,8 @@ export function MarketingReportPanel({
     );
 
     if ("error" in result) {
+      // Re-add failed dates to dirty
+      datesToSave.forEach(d => dirtyDatesRef.current.add(d));
       setErrorMsg(result.error || "Không thể lưu báo cáo.");
       return;
     }
