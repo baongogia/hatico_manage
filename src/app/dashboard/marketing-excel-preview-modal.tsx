@@ -30,20 +30,57 @@ export function MarketingExcelPreviewModal({
   posts,
   events,
 }: MarketingExcelPreviewModalProps) {
-  const [activeTab, setActiveTab] = useState<"posts" | "events">("posts");
+  const [activeTab, setActiveTab] = useState<"kpi" | "posts" | "events">("kpi");
 
-  let tiktok = 0, facebook = 0, youtube = 0, website = 0;
+  let tiktokCount = 0, tiktokViews = 0, tiktokOver5k = 0, tiktokOver10k = 0;
+  let fbCount = 0, fbReach = 0, fbInteractions = 0, fbComments = 0;
+  let ytCount = 0;
+  let webCount = 0;
+
   posts.forEach(p => {
-    if (p.platform.includes("Tiktok")) tiktok++;
-    if (p.platform.includes("Facebook")) facebook++;
-    if (p.platform.includes("Youtube")) youtube++;
-    if (p.platform.includes("Website")) website++;
+    const views = parseInt(String(p.views).replace(/[^0-9]/g, "")) || 0;
+    const likes = parseInt(String(p.likes).replace(/[^0-9]/g, "")) || 0;
+    const comments = parseInt(String(p.comments).replace(/[^0-9]/g, "")) || 0;
+    const shares = parseInt(String(p.shares).replace(/[^0-9]/g, "")) || 0;
+
+    if (p.platform.includes("Tiktok")) {
+      tiktokCount++;
+      tiktokViews += views;
+      if (views >= 10000) tiktokOver10k++;
+      if (views >= 5000) tiktokOver5k++; 
+    }
+    if (p.platform.includes("Facebook")) {
+      fbCount++;
+      fbReach += views;
+      fbInteractions += (likes + comments + shares);
+      fbComments += comments;
+    }
+    if (p.platform.includes("Youtube")) {
+      ytCount++;
+    }
+    if (p.platform.includes("Website")) {
+      webCount++;
+    }
   });
+  
+  const kpiData = [
+    { name: "[TikTok] Sản lượng video", target: 30, actual: tiktokCount },
+    { name: "[TikTok] Tổng lượt xem", target: 60000, actual: tiktokViews },
+    { name: "[TikTok] Video > 5.000 views", target: 5, actual: tiktokOver5k },
+    { name: "[TikTok] Video > 10.000 views", target: 1, actual: tiktokOver10k },
+    { name: "[Facebook] Sản lượng bài đăng", target: 25, actual: fbCount },
+    { name: "[Facebook] Tổng reach (tiếp cận)", target: 60000, actual: fbReach },
+    { name: "[Facebook] Tổng tương tác", target: 2000, actual: fbInteractions },
+    { name: "[Facebook] Bình luận/tin nhắn", target: 30, actual: fbComments },
+    { name: "[Website] Sản lượng bài viết", target: 2, actual: webCount },
+    { name: "[YouTube] Sản lượng video/shorts", target: 8, actual: ytCount },
+  ];
+
   const platformCounts = [];
-  if (tiktok > 0) platformCounts.push(`Tiktok: ${tiktok}`);
-  if (facebook > 0) platformCounts.push(`Facebook: ${facebook}`);
-  if (youtube > 0) platformCounts.push(`Youtube: ${youtube}`);
-  if (website > 0) platformCounts.push(`Website: ${website}`);
+  if (tiktokCount > 0) platformCounts.push(`Tiktok: ${tiktokCount}`);
+  if (fbCount > 0) platformCounts.push(`Facebook: ${fbCount}`);
+  if (ytCount > 0) platformCounts.push(`Youtube: ${ytCount}`);
+  if (webCount > 0) platformCounts.push(`Website: ${webCount}`);
   const platformStatsStr = platformCounts.length > 0 ? ` (${platformCounts.join(", ")})` : "";
 
   if (!open) return null;
@@ -77,6 +114,17 @@ export function MarketingExcelPreviewModal({
         <div className="flex items-center gap-2 mt-3 shrink-0">
           <button
             type="button"
+            onClick={() => setActiveTab("kpi")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              activeTab === "kpi"
+                ? "bg-[#0f2d59] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Sheet 1: Đánh giá KPI
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("posts")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === "posts"
@@ -84,7 +132,7 @@ export function MarketingExcelPreviewModal({
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            Sheet 1: Hiệu suất đăng bài ({posts.length})
+            Sheet 2: Hiệu suất đăng bài ({posts.length})
           </button>
           <button
             type="button"
@@ -95,7 +143,7 @@ export function MarketingExcelPreviewModal({
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            Sheet 2: Bàn giao mooc & Sự kiện ({events.length})
+            Sheet 3: Bàn giao mooc & Sự kiện ({events.length})
           </button>
         </div>
 
@@ -103,8 +151,109 @@ export function MarketingExcelPreviewModal({
         <div className="flex-grow overflow-auto py-4 min-h-0">
           <div className="border border-slate-200 rounded-lg overflow-auto bg-slate-100 p-4 min-w-[850px] max-h-[55vh] no-scrollbar">
             
-            {activeTab === "posts" ? (
-              /* Simulated Sheet 1: Posts */
+            {activeTab === "kpi" ? (
+              /* Simulated Sheet 1: KPI */
+              <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_2.5fr_1.5fr_1.5fr_1.5fr] relative select-none">
+                
+                {/* Columns Header (A to D) */}
+                <div className="bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-r border-b border-slate-300 py-1 flex items-center justify-center text-[10px]">
+                  {/* corner */}
+                </div>
+                {["A", "B", "C", "D"].map((col) => (
+                  <div
+                    key={col}
+                    className={`bg-[#f3f4f6] text-[#4b5563] text-center font-bold border-slate-300 py-1 text-[10px] ${
+                      col !== "D" ? "border-r border-b" : "border-b"
+                    }`}
+                  >
+                    {col}
+                  </div>
+                ))}
+
+                {/* Row 1: Company Info */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2.5 flex items-center justify-center text-[10px] h-10">
+                  1
+                </div>
+                <div className="col-span-3 border-r border-b border-slate-200 px-3 font-bold text-slate-900 flex items-center h-10">
+                  CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO
+                </div>
+                {/* Logo in Column D spanning Rows 1-3 */}
+                <div className="row-span-3 border-b border-slate-200 p-2 flex items-center justify-end pr-4 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo/hatico_logo.png" alt="Logo" className="w-[140px] h-[65px] object-contain" />
+                </div>
+
+                {/* Row 2: Title */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-3 flex items-center justify-center text-[10px] h-12">
+                  2
+                </div>
+                <div className="col-span-3 border-r border-b border-slate-200 px-3 font-bold text-[#0f2d59] text-[13px] flex items-center h-12">
+                  ĐÁNH GIÁ KPI MARKETING
+                </div>
+
+                {/* Row 3: Stats */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-2 flex items-center justify-center text-[10px] h-10">
+                  3
+                </div>
+                <div className="col-span-3 border-r border-b border-slate-200 px-3 text-slate-600 text-[10px] flex items-center h-10 leading-snug">
+                  Nhân viên: {staffName}{branchName ? ` · ${branchName}` : ""} · Khoảng: {PERIOD_LABELS[period]}
+                </div>
+
+                {/* Row 4: Spacer */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 py-1.5 flex items-center justify-center text-[10px] h-6">
+                  4
+                </div>
+                <div className="col-span-4 border-b border-slate-200 h-6"></div>
+
+                {/* Row 5: Table Column Headers */}
+                <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] h-7">
+                  5
+                </div>
+                {["Hạng mục", "Chỉ tiêu (Tháng)", "Thực tế đạt", "Tỉ lệ đạt (%)"].map((header, idx) => (
+                  <div
+                    key={idx}
+                    className={`bg-[#0f2d59] text-white font-bold px-2 flex items-center h-7 justify-center text-[10px] text-center ${
+                      idx !== 3 ? "border-r border-b border-slate-300" : "border-b border-slate-300"
+                    }`}
+                  >
+                    {header}
+                  </div>
+                ))}
+
+                {/* Data Rows */}
+                {kpiData.map((row, idx) => {
+                  const dataRowIndex = 6 + idx;
+                  const isEven = idx % 2 === 1;
+                  const rowBg = isEven ? "bg-[#f8fafc]" : "bg-white";
+                  const percent = row.target > 0 ? (row.actual / row.target) * 100 : 0;
+                  
+                  let colorClass = "text-red-600";
+                  if (percent >= 100) colorClass = "text-green-600";
+                  else if (percent >= 80) colorClass = "text-yellow-600";
+
+                  return (
+                    <div key={idx} className="contents">
+                      <div className="bg-[#f3f4f6] text-[#6b7280] text-center font-semibold border-r border-b border-slate-300 flex items-center justify-center text-[10px] min-h-[28px] py-1.5">
+                        {dataRowIndex}
+                      </div>
+                      <div className={`${rowBg} border-r border-b border-slate-200 px-3 ${row.name === "Tổng bài đăng" ? "font-bold" : "font-medium"} text-slate-900 flex items-center py-1.5`}>
+                        {row.name}
+                      </div>
+                      <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-700 flex items-center justify-center py-1.5`}>
+                        {row.target.toLocaleString("vi-VN")}
+                      </div>
+                      <div className={`${rowBg} border-r border-b border-slate-200 px-2 text-slate-700 flex items-center justify-center py-1.5 font-medium`}>
+                        {row.actual.toLocaleString("vi-VN")}
+                      </div>
+                      <div className={`${rowBg} border-b border-slate-200 px-2 flex items-center justify-center py-1.5 font-bold ${colorClass}`}>
+                        {percent.toFixed(1)}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : activeTab === "posts" ? (
+              /* Simulated Sheet 2: Posts */
               <div className="bg-white border border-slate-300 shadow-sm font-sans text-xs text-slate-800 grid grid-cols-[40px_1fr_2.4fr_1.8fr_1fr_1fr_1.2fr] relative select-none">
                 
                 {/* Columns Header (A to F) */}

@@ -55,7 +55,157 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     console.error("Failed to load logo for Excel", err);
   }
 
-  // --- SHEET 1: HIỆU SUẤT ĐĂNG BÀI ---
+  let tiktokCount = 0, tiktokViews = 0, tiktokOver5k = 0, tiktokOver10k = 0;
+  let fbCount = 0, fbReach = 0, fbInteractions = 0, fbComments = 0;
+  let ytCount = 0;
+  let webCount = 0;
+
+  posts.forEach(p => {
+    const views = parseInt(String(p.views).replace(/[^0-9]/g, "")) || 0;
+    const likes = parseInt(String(p.likes).replace(/[^0-9]/g, "")) || 0;
+    const comments = parseInt(String(p.comments).replace(/[^0-9]/g, "")) || 0;
+    const shares = parseInt(String(p.shares).replace(/[^0-9]/g, "")) || 0;
+
+    if (p.platform.includes("Tiktok")) {
+      tiktokCount++;
+      tiktokViews += views;
+      if (views >= 10000) tiktokOver10k++;
+      if (views >= 5000) tiktokOver5k++; 
+    }
+    if (p.platform.includes("Facebook")) {
+      fbCount++;
+      fbReach += views; // reach
+      fbInteractions += (likes + comments + shares);
+      fbComments += comments; // proxy for messages/comments
+    }
+    if (p.platform.includes("Youtube")) {
+      ytCount++;
+    }
+    if (p.platform.includes("Website")) {
+      webCount++;
+    }
+  });
+
+  const kpiData = [
+    { name: "[TikTok] Sản lượng video", target: 30, actual: tiktokCount },
+    { name: "[TikTok] Tổng lượt xem", target: 60000, actual: tiktokViews },
+    { name: "[TikTok] Video > 5.000 views", target: 5, actual: tiktokOver5k },
+    { name: "[TikTok] Video > 10.000 views", target: 1, actual: tiktokOver10k },
+    { name: "[Facebook] Sản lượng bài đăng", target: 25, actual: fbCount },
+    { name: "[Facebook] Tổng reach (tiếp cận)", target: 60000, actual: fbReach },
+    { name: "[Facebook] Tổng tương tác", target: 2000, actual: fbInteractions },
+    { name: "[Facebook] Bình luận/tin nhắn", target: 30, actual: fbComments },
+    { name: "[Website] Sản lượng bài viết", target: 2, actual: webCount },
+    { name: "[YouTube] Sản lượng video/shorts", target: 8, actual: ytCount },
+  ];
+
+  // --- SHEET 1: ĐÁNH GIÁ KPI ---
+  const kpiSheet = workbook.addWorksheet("Đánh giá KPI", {
+    views: [{ showGridLines: true }],
+  });
+  
+  kpiSheet.columns = [
+    { key: "name", width: 25 },
+    { key: "target", width: 16 },
+    { key: "actual", width: 16 },
+    { key: "percent", width: 16 },
+  ];
+
+  const addMergedLineKpi = (
+    text: string,
+    style: Partial<ExcelJS.Style>,
+    endCol: string = "D"
+  ) => {
+    const row = kpiSheet.addRow([text, "", "", ""]);
+    const n = row.number;
+    kpiSheet.mergeCells(`A${n}:${endCol}${n}`);
+    styleRow(row, style);
+    return n;
+  };
+
+  const kLine1 = addMergedLineKpi("CÔNG TY CỔ PHẦN XNK QUỐC TẾ HATICO", {
+    font: { bold: true, size: 11 },
+    alignment: { vertical: "middle" },
+  });
+  kpiSheet.getRow(kLine1).height = 24;
+
+  const kLine2 = addMergedLineKpi("ĐÁNH GIÁ KPI MARKETING", {
+    font: { bold: true, size: 14, color: { argb: PRIMARY } },
+    alignment: { vertical: "middle" },
+  });
+  kpiSheet.getRow(kLine2).height = 32;
+
+  const kLine3 = addMergedLineKpi(
+    `Nhân viên: ${staffName}${branchName ? ` · ${branchName}` : ""} · Khoảng: ${PERIOD_LABELS[period]}`,
+    {
+      font: { size: 10, color: { argb: "FF334155" } },
+      alignment: { wrapText: true, vertical: "middle" },
+    }
+  );
+  kpiSheet.getRow(kLine3).height = 24;
+
+  if (imageId !== undefined) {
+    kpiSheet.addImage(imageId, {
+      tl: { col: 3, row: 0 },
+      ext: { width: 160, height: 75 },
+    });
+  }
+
+  kpiSheet.addRow([]);
+
+  const kpiHeaderRow = kpiSheet.addRow([
+    "Hạng mục",
+    "Chỉ tiêu (Tháng)",
+    "Thực tế đạt",
+    "Tỉ lệ đạt (%)"
+  ]);
+  styleRow(kpiHeaderRow, {
+    font: { bold: true, size: 10, color: { argb: "FFFFFFFF" } },
+    fill: { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } },
+    border: thinBorder,
+    alignment: { vertical: "middle", horizontal: "center", wrapText: true },
+  });
+  kpiHeaderRow.height = 22;
+
+  kpiData.forEach((row, i) => {
+    const percent = row.target > 0 ? (row.actual / row.target) * 100 : 0;
+    const rowNum = 6 + i;
+    const dataRow = kpiSheet.addRow([
+      row.name,
+      row.target,
+      row.actual,
+      { formula: `IF(B${rowNum}>0, C${rowNum}/B${rowNum}, 0)` }
+    ]);
+    
+    styleRow(dataRow, {
+      font: { size: 10, bold: row.name === "Tổng bài đăng" },
+      fill:
+        i % 2 === 1
+          ? { type: "pattern", pattern: "solid", fgColor: { argb: ALT_FILL } }
+          : undefined,
+      border: thinBorder,
+      alignment: { vertical: "middle", wrapText: true },
+    });
+    
+    dataRow.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+    dataRow.getCell(2).numFmt = "#,##0";
+    dataRow.getCell(3).alignment = { horizontal: "center", vertical: "middle" };
+    dataRow.getCell(3).numFmt = "#,##0";
+    
+    const percentCell = dataRow.getCell(4);
+    percentCell.alignment = { horizontal: "center", vertical: "middle" };
+    percentCell.numFmt = "0.0%";
+    
+    if (percent >= 100) {
+      percentCell.font = { size: 10, bold: true, color: { argb: "FF16A34A" } }; // Green
+    } else if (percent >= 80) {
+      percentCell.font = { size: 10, bold: true, color: { argb: "FFCA8A04" } }; // Yellow
+    } else {
+      percentCell.font = { size: 10, bold: true, color: { argb: "FFDC2626" } }; // Red
+    }
+  });
+
+  // --- SHEET 2: HIỆU SUẤT ĐĂNG BÀI ---
   const postSheet = workbook.addWorksheet("Hiệu suất đăng bài", {
     views: [{ showGridLines: true }],
   });
@@ -72,7 +222,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
   const addMergedLinePost = (
     text: string,
     style: Partial<ExcelJS.Style>,
-    endCol: string = "E"
+    endCol: string = "F"
   ) => {
     const row = postSheet.addRow([text, "", "", "", "", ""]);
     const n = row.number;
@@ -93,18 +243,11 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
   });
   postSheet.getRow(pLine2).height = 32;
 
-  let tiktok = 0, facebook = 0, youtube = 0, website = 0;
-  posts.forEach(p => {
-    if (p.platform.includes("Tiktok")) tiktok++;
-    if (p.platform.includes("Facebook")) facebook++;
-    if (p.platform.includes("Youtube")) youtube++;
-    if (p.platform.includes("Website")) website++;
-  });
   const platformCounts = [];
-  if (tiktok > 0) platformCounts.push(`Tiktok: ${tiktok}`);
-  if (facebook > 0) platformCounts.push(`Facebook: ${facebook}`);
-  if (youtube > 0) platformCounts.push(`Youtube: ${youtube}`);
-  if (website > 0) platformCounts.push(`Website: ${website}`);
+  if (tiktokCount > 0) platformCounts.push(`Tiktok: ${tiktokCount}`);
+  if (fbCount > 0) platformCounts.push(`Facebook: ${fbCount}`);
+  if (ytCount > 0) platformCounts.push(`Youtube: ${ytCount}`);
+  if (webCount > 0) platformCounts.push(`Website: ${webCount}`);
   const platformStatsStr = platformCounts.length > 0 ? ` (${platformCounts.join(", ")})` : "";
 
   const pLine3 = addMergedLinePost(
@@ -171,7 +314,7 @@ export async function downloadMarketingReportExcel(filename: string, options: Ex
     });
   }
 
-  // --- SHEET 2: BÀN GIAO MOOC & SỰ KIỆN ---
+  // --- SHEET 3: BÀN GIAO MOOC & SỰ KIỆN ---
   const eventSheet = workbook.addWorksheet("Bàn giao mooc & Sự kiện", {
     views: [{ showGridLines: true }],
   });

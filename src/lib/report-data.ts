@@ -107,8 +107,14 @@ export function getPeriodStartDate(period: CallReportPeriod) {
   const now = new Date();
   if (period === "all") return null;
   const start = new Date(now);
-  if (period === "week") start.setDate(start.getDate() - 7);
-  if (period === "month") start.setDate(start.getDate() - 30);
+  if (period === "week") {
+    start.setDate(start.getDate() - 7);
+  } else if (period === "month") {
+    // Get from the 1st day of the previous month to ensure 
+    // we have the complete data for the previous month
+    start.setMonth(start.getMonth() - 1);
+    start.setDate(1);
+  }
   return start.toISOString().split("T")[0];
 }
 
