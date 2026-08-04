@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { PwaRegister } from "@/components/pwa-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,12 +24,14 @@ export const metadata: Metadata = {
     ],
     apple: "/logo/favicon-192.png",
   },
+  manifest: "/manifest.webmanifest",
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover" as const,
+  viewportFit: "cover",
+  themeColor: "#09090b",
 };
 
 export default function RootLayout({
@@ -51,7 +54,10 @@ export default function RootLayout({
           href="https://bmmmdhinlqrlxfrtozpt.supabase.co"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }
