@@ -52,25 +52,41 @@ const STATUS_OPTIONS = [
 ];
 
 const TikTokIcon = (
-  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    className="w-3.5 h-3.5 fill-current"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.74-.22-.23-.45-.48-.64-.73v7.28c-.08 3.26-2.01 6.34-5.11 7.4-3.1 1.13-6.85.34-9.06-2-2.31-2.39-2.73-6.27-1.02-9.14 1.7-2.92 5.29-4.48 8.59-3.79v4.2c-1.84-.46-3.87.21-4.79 1.83-.97 1.67-.54 3.98 1.02 5.16 1.54 1.19 3.93.98 5.2-.44.59-.65.75-1.51.74-2.36.01-4.07.01-8.14.01-12.21-.01-.32-.03-.64-.03-.96z" />
   </svg>
 );
 
 const FacebookIcon = (
-  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    className="w-3.5 h-3.5 fill-current"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 const YouTubeIcon = (
-  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    className="w-3.5 h-3.5 fill-current"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.388.51a3.004 3.004 0 0 0-2.11 2.108C0 8.028 0 12 0 12s0 3.972.502 5.837a3.003 3.003 0 0 0 2.11 2.108C4.475 20.455 12 20.455 12 20.455s7.524 0 9.388-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.972 24 12 24 12s0-3.972-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
 
 const WebsiteIcon = (
-  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    className="w-3.5 h-3.5 fill-current"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.4z" />
   </svg>
 );
@@ -84,7 +100,9 @@ const mobileFormInput =
 const toolbarBtn =
   "inline-flex items-center justify-center shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-[6px] text-[10px] sm:text-xs font-bold touch-manipulation transition-colors cursor-pointer";
 
-type MobilePostFormState = Omit<MarketingPostEntry, "type"> & { report_date: string };
+type MobilePostFormState = Omit<MarketingPostEntry, "type"> & {
+  report_date: string;
+};
 type MobileEventFormState = Omit<MarketingEventEntry, "type">;
 
 type EditablePostRow = MarketingPostRow & { rowId: string };
@@ -180,9 +198,7 @@ function newEmptyEventRow(todayStr: string): EditableEventRow {
   };
 }
 
-export function MarketingReportPanel({
-  profile,
-}: MarketingReportPanelProps) {
+export function MarketingReportPanel({ profile }: MarketingReportPanelProps) {
   const todayStr = new Date().toISOString().split("T")[0];
   const isAdmin = profile.role === "admin";
 
@@ -254,22 +270,25 @@ export function MarketingReportPanel({
     });
   }, [events, filterMonth]);
 
+  const [marketingStaff, setMarketingStaff] = useState<
+    { id: string; full_name: string }[]
+  >([]);
 
-  const [marketingStaff, setMarketingStaff] = useState<{ id: string; full_name: string }[]>([]);
-
-  const [loadedPostDates, setLoadedPostDates] = useState<Set<string>>(new Set());
-  const [loadedEventDates, setLoadedEventDates] = useState<Set<string>>(new Set());
+  const [loadedPostDates, setLoadedPostDates] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadedEventDates, setLoadedEventDates] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
 
   const [errorMsg, setErrorMsg] = useState("");
-  const [mobilePostForm, setMobilePostForm] = useState<MobilePostFormState>(
-    emptyMobilePostForm,
-  );
-  const [mobileEventForm, setMobileEventForm] = useState<MobileEventFormState>(
-    emptyMobileEventForm,
-  );
+  const [mobilePostForm, setMobilePostForm] =
+    useState<MobilePostFormState>(emptyMobilePostForm);
+  const [mobileEventForm, setMobileEventForm] =
+    useState<MobileEventFormState>(emptyMobileEventForm);
 
   const [editingPostRowId, setEditingPostRowId] = useState<string | null>(null);
   const [editingEventRowId, setEditingEventRowId] = useState<string | null>(
@@ -292,10 +311,10 @@ export function MarketingReportPanel({
   const focusPostRowIdRef = useRef<string | null>(null);
   const focusEventRowIdRef = useRef<string | null>(null);
   const dirtyDatesRef = useRef<Set<string>>(new Set());
-  
+
   const latestPosts = useRef(posts);
   const latestEvents = useRef(events);
-  
+
   useEffect(() => {
     latestPosts.current = posts;
     latestEvents.current = events;
@@ -337,13 +356,20 @@ export function MarketingReportPanel({
       const unsaved = prev.filter((p) => {
         if (!p.rowId.startsWith("new-")) return false;
         // Keep if completely empty
-        if (!p.title.trim() && !p.link.trim() && !p.views.trim() && !p.likes.trim()) return true;
+        if (
+          !p.title.trim() &&
+          !p.link.trim() &&
+          !p.views.trim() &&
+          !p.likes.trim()
+        )
+          return true;
         // Check if already saved
-        const isSaved = savedPosts.some((sp) =>
-          sp.title === p.title &&
-          sp.platform === p.platform &&
-          sp.link === p.link &&
-          sp.report_date === p.report_date
+        const isSaved = savedPosts.some(
+          (sp) =>
+            sp.title === p.title &&
+            sp.platform === p.platform &&
+            sp.link === p.link &&
+            sp.report_date === p.report_date,
         );
         return !isSaved;
       });
@@ -355,13 +381,20 @@ export function MarketingReportPanel({
       const unsaved = prev.filter((e) => {
         if (!e.rowId.startsWith("new-")) return false;
         // Keep if completely empty
-        if (!e.event_name.trim() && !e.location?.trim() && !e.budget.trim() && !e.qty?.trim()) return true;
+        if (
+          !e.event_name.trim() &&
+          !e.location?.trim() &&
+          !e.budget.trim() &&
+          !e.qty?.trim()
+        )
+          return true;
         // Check if already saved
-        const isSaved = savedEvents.some((se) =>
-          se.event_name === e.event_name &&
-          se.event_date === e.event_date &&
-          se.location === e.location &&
-          se.budget === e.budget
+        const isSaved = savedEvents.some(
+          (se) =>
+            se.event_name === e.event_name &&
+            se.event_date === e.event_date &&
+            se.location === e.location &&
+            se.budget === e.budget,
         );
         return !isSaved;
       });
@@ -393,7 +426,6 @@ export function MarketingReportPanel({
   useEffect(() => {
     loadReports(period, selectedStaffId);
   }, []);
-
 
   const handlePeriodChange = (value: CallReportPeriod) => {
     setPeriod(value);
@@ -467,13 +499,15 @@ export function MarketingReportPanel({
     shouldSave = false,
   ) => {
     setPosts((prev) => {
-      const rowToEdit = prev.find(r => r.rowId === rowId);
+      const rowToEdit = prev.find((r) => r.rowId === rowId);
       if (rowToEdit) {
         dirtyDatesRef.current.add(rowToEdit.report_date);
         if (field === "report_date") dirtyDatesRef.current.add(value);
       }
-      
-      const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
+
+      const next = prev.map((r) =>
+        r.rowId === rowId ? { ...r, [field]: value } : r,
+      );
       if (shouldSave) {
         const editedRow = next.find((r) => r.rowId === rowId);
         if (editedRow && editedRow.title.trim()) {
@@ -522,13 +556,15 @@ export function MarketingReportPanel({
     shouldSave = false,
   ) => {
     setEvents((prev) => {
-      const rowToEdit = prev.find(r => r.rowId === rowId);
+      const rowToEdit = prev.find((r) => r.rowId === rowId);
       if (rowToEdit) {
         dirtyDatesRef.current.add(rowToEdit.event_date);
         if (field === "event_date") dirtyDatesRef.current.add(value);
       }
-      
-      const next = prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r));
+
+      const next = prev.map((r) =>
+        r.rowId === rowId ? { ...r, [field]: value } : r,
+      );
       if (shouldSave) {
         const editedRow = next.find((r) => r.rowId === rowId);
         if (editedRow && editedRow.event_name.trim()) {
@@ -591,7 +627,7 @@ export function MarketingReportPanel({
 
     let nextPosts: EditablePostRow[];
     if (editingPostRowId) {
-      const rowToEdit = posts.find(r => r.rowId === editingPostRowId);
+      const rowToEdit = posts.find((r) => r.rowId === editingPostRowId);
       if (rowToEdit) {
         dirtyDatesRef.current.add(rowToEdit.report_date);
       }
@@ -626,7 +662,7 @@ export function MarketingReportPanel({
 
     let nextEvents: EditableEventRow[];
     if (editingEventRowId) {
-      const rowToEdit = events.find(r => r.rowId === editingEventRowId);
+      const rowToEdit = events.find((r) => r.rowId === editingEventRowId);
       if (rowToEdit) {
         dirtyDatesRef.current.add(rowToEdit.event_date);
       }
@@ -658,7 +694,7 @@ export function MarketingReportPanel({
     deletedDates: string[] = [],
     skipRefresh: boolean = false,
   ) => {
-    deletedDates.forEach(d => dirtyDatesRef.current.add(d));
+    deletedDates.forEach((d) => dirtyDatesRef.current.add(d));
     const datesToSave = new Set(dirtyDatesRef.current);
     if (datesToSave.size === 0) return;
 
@@ -730,7 +766,7 @@ export function MarketingReportPanel({
 
     if ("error" in result) {
       // Re-add failed dates to dirty
-      datesToSave.forEach(d => dirtyDatesRef.current.add(d));
+      datesToSave.forEach((d) => dirtyDatesRef.current.add(d));
       setErrorMsg(result.error || "Không thể lưu báo cáo.");
       return;
     }
@@ -757,14 +793,19 @@ export function MarketingReportPanel({
   const handleConfirmExportExcel = async () => {
     setShowExcelPreview(false);
     try {
-      const label = filterMonth === "all" ? "Tat_ca_cac_thang" : `Thang_${filterMonth.split("-")[1]}_${filterMonth.split("-")[0]}`;
+      const label =
+        filterMonth === "all"
+          ? "Tat_ca_cac_thang"
+          : `Thang_${filterMonth.split("-")[1]}_${filterMonth.split("-")[0]}`;
       const exportPosts = displayedPosts.filter((p) => p.title.trim());
       const exportEvents = displayedEvents.filter((e) => e.event_name.trim());
-      
-      const staffLabel = selectedStaffId === "all"
-        ? "Tat_ca_nhan_su"
-        : (marketingStaff.find(s => s.id === selectedStaffId)?.full_name || profile.full_name);
-        
+
+      const staffLabel =
+        selectedStaffId === "all"
+          ? "Tat_ca_nhan_su"
+          : marketingStaff.find((s) => s.id === selectedStaffId)?.full_name ||
+            profile.full_name;
+
       const branchLabel = profile.department?.branch
         ? `${profile.department.name} - ${profile.department.branch.name}`
         : profile.department?.name;
@@ -773,11 +814,15 @@ export function MarketingReportPanel({
         `Bao_cao_marketing_${staffLabel.replace(/\s+/g, "_")}_${label}.xlsx`,
         {
           period,
-          staffName: selectedStaffId === "all" ? "Tất cả nhân sự" : (marketingStaff.find(s => s.id === selectedStaffId)?.full_name || profile.full_name),
+          staffName:
+            selectedStaffId === "all"
+              ? "Tất cả nhân sự"
+              : marketingStaff.find((s) => s.id === selectedStaffId)
+                  ?.full_name || profile.full_name,
           branchName: branchLabel,
           posts: exportPosts,
           events: exportEvents,
-        }
+        },
       );
     } catch (err) {
       console.error(err);
@@ -836,11 +881,33 @@ export function MarketingReportPanel({
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all duration-300">
           <div className="flex flex-col items-center justify-center gap-3 bg-white/90 shadow-2xl border border-primary/10 rounded-2xl p-6 transform scale-100 animate-in fade-in zoom-in-95 duration-200">
             <div className="relative flex items-center justify-center w-12 h-12">
-              <svg className="w-12 h-12 animate-spin text-primary/20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <svg
+                className="w-12 h-12 animate-spin text-primary/20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                />
               </svg>
-              <svg className="w-12 h-12 animate-spin text-primary absolute left-0 top-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.47715 2 2 6.47715 2 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                className="w-12 h-12 animate-spin text-primary absolute left-0 top-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C6.47715 2 2 6.47715 2 12"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
@@ -905,10 +972,10 @@ export function MarketingReportPanel({
       </div>
 
       {/* Integrated Metrics & Filters Dashboard Panel */}
-      <div className={`shrink-0 ${layoutPad} pb-1.5`}>
-        <div className="flex flex-col gap-3.5 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 shadow-xs">
+      <div className={`shrink-0 ${layoutPad} pb-0`}>
+        <div className="flex flex-col gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3 shadow-xs">
           {/* Top Row: Metrics (split into 2 equal columns on medium+ screens) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Column 1: Hiệu suất Đăng bài */}
             <div className="flex flex-col gap-1.5 justify-center">
               <div className="flex justify-between items-center border-b border-slate-200/60 pb-1">
@@ -921,46 +988,69 @@ export function MarketingReportPanel({
                   </span>
                 </div>
                 <span className="text-xs font-bold text-primary">
-                  {postMetrics.total} <span className="text-[10px] text-slate-400 font-semibold">/ 65 bài</span>
+                  {postMetrics.total}{" "}
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    / 65 bài
+                  </span>
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-1 text-center">
                 <div>
                   <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.tiktok}
-                    <span className="text-[8px] font-semibold text-slate-400">/30</span>
+                    <span className="text-[8px] font-semibold text-slate-400">
+                      /30
+                    </span>
                   </p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Tiktok</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Tiktok
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.facebook}
-                    <span className="text-[8px] font-semibold text-slate-400">/25</span>
+                    <span className="text-[8px] font-semibold text-slate-400">
+                      /25
+                    </span>
                   </p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Facebook</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Facebook
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.youtube}
-                    <span className="text-[8px] font-semibold text-slate-400">/8</span>
+                    <span className="text-[8px] font-semibold text-slate-400">
+                      /8
+                    </span>
                   </p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Youtube</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Youtube
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.website}
-                    <span className="text-[8px] font-semibold text-slate-400">/2</span>
+                    <span className="text-[8px] font-semibold text-slate-400">
+                      /2
+                    </span>
                   </p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Website</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Website
+                  </p>
                 </div>
                 <div className="border-l border-slate-200/50">
                   <p className="text-xs font-extrabold text-primary flex items-baseline justify-center gap-0.5">
                     {postMetrics.views >= 1000
                       ? `${(postMetrics.views / 1000).toFixed(1)}k`
                       : postMetrics.views}
-                    <span className="text-[8px] font-semibold text-slate-400">/120k</span>
+                    <span className="text-[8px] font-semibold text-slate-400">
+                      /120k
+                    </span>
                   </p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Xem</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Xem
+                  </p>
                 </div>
               </div>
             </div>
@@ -977,16 +1067,28 @@ export function MarketingReportPanel({
               </div>
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div>
-                  <p className="text-xs font-extrabold text-primary">{eventMetrics.total}</p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Sự kiện</p>
+                  <p className="text-xs font-extrabold text-primary">
+                    {eventMetrics.total}
+                  </p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Sự kiện
+                  </p>
                 </div>
                 <div className="border-l border-r border-slate-200/50">
-                  <p className="text-xs font-extrabold text-primary">{eventMetrics.attendees}</p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide font-sans">Tham gia</p>
+                  <p className="text-xs font-extrabold text-primary">
+                    {eventMetrics.attendees}
+                  </p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide font-sans">
+                    Tham gia
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-extrabold text-primary truncate px-0.5">{eventMetrics.budget || 0}</p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Chi phí</p>
+                  <p className="text-xs font-extrabold text-primary truncate px-0.5">
+                    {eventMetrics.budget || 0}
+                  </p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
+                    Chi phí
+                  </p>
                 </div>
               </div>
             </div>
@@ -1035,8 +1137,8 @@ export function MarketingReportPanel({
                 className="w-40 shrink-0"
               />
               <span className="flex items-center justify-center h-8 px-2.5 rounded-[4px] text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/15 whitespace-nowrap">
-                {activeSubTab === "posts" 
-                  ? `${displayedPosts.length} / ${posts.length} bài` 
+                {activeSubTab === "posts"
+                  ? `${displayedPosts.length} / ${posts.length} bài`
                   : `${displayedEvents.length} / ${events.length} sự kiện`}
               </span>
             </div>
@@ -1110,36 +1212,50 @@ export function MarketingReportPanel({
           {/* Bottom Row: Horizontal Day Scroller (Spans Full Width, Only when month is active) */}
           {filterMonth !== "all" && daysInMonth.length > 0 && (
             <div className="border-t border-slate-200/50 pt-2 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                  Thêm dòng báo cáo nhanh cho ngày:
-                </span>
-              </div>
               <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar scroll-smooth">
-                {daysInMonth.map((day) => (
-                  <button
-                    key={day.dayStr}
-                    type="button"
-                    onClick={() => {
-                      const dateStr = `${filterMonth}-${day.dayStr}`;
-                      if (activeSubTab === "posts") {
-                        handleAddPostRow(dateStr);
-                      } else {
-                        handleAddEventRow(dateStr);
-                      }
-                    }}
-                    className={`shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
-                      day.isWeekend
-                        ? "bg-amber-50/70 border-amber-200/80 text-amber-800 hover:bg-amber-100/80 hover:scale-105 shadow-sm"
-                        : "bg-white border-slate-200 text-slate-700 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 shadow-sm"
-                    }`}
-                  >
-                    <span className={`text-[7px] uppercase font-bold text-slate-400`}>
-                      {day.dayName}
-                    </span>
-                    <span className="text-[9px] font-extrabold">{day.label}</span>
-                  </button>
-                ))}
+                {daysInMonth.map((day) => {
+                  const dateStr = `${filterMonth}-${day.dayStr}`;
+                  const hasReport =
+                    activeSubTab === "posts"
+                      ? posts.some(
+                          (p) => p.report_date === dateStr && p.title.trim(),
+                        )
+                      : events.some(
+                          (e) =>
+                            e.event_date === dateStr && e.event_name.trim(),
+                        );
+
+                  return (
+                    <button
+                      key={day.dayStr}
+                      type="button"
+                      onClick={() => {
+                        if (activeSubTab === "posts") {
+                          handleAddPostRow(dateStr);
+                        } else {
+                          handleAddEventRow(dateStr);
+                        }
+                      }}
+                      className={`relative shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
+                        day.isWeekend
+                          ? "bg-amber-50/70 border-amber-200/80 text-amber-800 hover:bg-amber-100/80 hover:scale-105 shadow-sm"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 shadow-sm"
+                      }`}
+                    >
+                      {hasReport && (
+                        <div className="absolute top-1 right-1 w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_2px_rgba(16,185,129,0.5)]" />
+                      )}
+                      <span
+                        className={`text-[7px] uppercase font-bold text-slate-400`}
+                      >
+                        {day.dayName}
+                      </span>
+                      <span className="text-[9px] font-extrabold">
+                        {day.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1147,375 +1263,407 @@ export function MarketingReportPanel({
       </div>
 
       {/* Toolbar / Actions & Filters */}
-      <div className={`shrink-0 ${layoutPad} flex flex-col ${layoutGap} pt-1`}>
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2">
-
-
-
+      {((activeSubTab === "posts" && selectedPosts.size > 0) ||
+        (activeSubTab === "events" && selectedEvents.size > 0) ||
+        errorMsg) && (
+        <div className={`shrink-0 ${layoutPad} flex flex-col gap-2 pt-3`}>
           {((activeSubTab === "posts" && selectedPosts.size > 0) ||
             (activeSubTab === "events" && selectedEvents.size > 0)) && (
-            <button
-              type="button"
-              onClick={handleDeleteSelected}
-              disabled={isSaving}
-              className={`${toolbarBtn} text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60`}
-            >
-              Xóa (
-              {activeSubTab === "posts" ? selectedPosts.size : selectedEvents.size}
-              )
-            </button>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteSelected}
+                disabled={isSaving}
+                className={`${toolbarBtn} text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60`}
+              >
+                Xóa (
+                {activeSubTab === "posts"
+                  ? selectedPosts.size
+                  : selectedEvents.size}
+                )
+              </button>
+            </div>
           )}
 
-          <span className="text-[9px] sm:text-[10px] text-slate-500 sm:ml-auto shrink-0">
-            {activeSubTab === "posts" ? posts.length : events.length} dòng
-          </span>
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded-lg text-[10px] sm:text-xs font-semibold">
+              {errorMsg}
+            </div>
+          )}
         </div>
+      )}
 
-        {errorMsg && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded-lg text-[10px] sm:text-xs font-semibold">
-            {errorMsg}
-          </div>
+      {/* Mobile Forms */}
+      <div className="sm:hidden rounded-xl border border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white p-2.5 space-y-2 shadow-sm">
+        {activeSubTab === "posts" ? (
+          <>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">
+              {editingPostRowId ? "Chỉnh sửa bài đăng" : "Thêm bài đăng mới"}
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="space-y-0.5 col-span-2">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Nền tảng
+                </span>
+                <div className="flex items-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobilePostForm((p) => ({
+                        ...p,
+                        platform: togglePlatform(p.platform, "Tiktok"),
+                      }))
+                    }
+                    title="Tiktok"
+                    className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                      mobilePostForm.platform.includes("Tiktok")
+                        ? "bg-[#fe2c55]/10 text-[#fe2c55]"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {TikTokIcon}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobilePostForm((p) => ({
+                        ...p,
+                        platform: togglePlatform(p.platform, "Facebook"),
+                      }))
+                    }
+                    title="Facebook"
+                    className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                      mobilePostForm.platform.includes("Facebook")
+                        ? "bg-[#1877f2]/10 text-[#1877f2]"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {FacebookIcon}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobilePostForm((p) => ({
+                        ...p,
+                        platform: togglePlatform(p.platform, "Youtube"),
+                      }))
+                    }
+                    title="Youtube"
+                    className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                      mobilePostForm.platform.includes("Youtube")
+                        ? "bg-[#ff0000]/10 text-[#ff0000]"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {YouTubeIcon}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobilePostForm((p) => ({
+                        ...p,
+                        platform: togglePlatform(p.platform, "Website"),
+                      }))
+                    }
+                    title="Website"
+                    className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
+                      mobilePostForm.platform.includes("Website")
+                        ? "bg-slate-700/15 text-slate-800"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {WebsiteIcon}
+                  </button>
+                </div>
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Tiêu đề *
+                </span>
+                <input
+                  type="text"
+                  placeholder="Tiêu đề video/bài viết"
+                  value={mobilePostForm.title}
+                  onChange={(e) =>
+                    setMobilePostForm((p) => ({ ...p, title: e.target.value }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Link bài đăng
+                </span>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  value={mobilePostForm.link}
+                  onChange={(e) =>
+                    setMobilePostForm((p) => ({ ...p, link: e.target.value }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Lượt xem
+                </span>
+                <input
+                  type="text"
+                  placeholder=""
+                  value={mobilePostForm.views}
+                  onChange={(e) =>
+                    setMobilePostForm((p) => ({ ...p, views: e.target.value }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Ngày
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDatePicker({
+                      type: "post-mobile",
+                      rowId: "",
+                      value: mobilePostForm.report_date,
+                    })
+                  }
+                  className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
+                >
+                  <span className="font-sans font-medium">
+                    {formatDateDisplay(mobilePostForm.report_date)}
+                  </span>
+                  <svg
+                    className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </label>
+            </div>
+            <div className="flex gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={handleMobilePostSubmit}
+                className="flex-1 h-7 rounded-md text-[10px] font-bold text-white bg-primary hover:bg-primary-hover cursor-pointer touch-manipulation transition-colors shadow-sm"
+              >
+                {editingPostRowId ? "Cập nhật" : "Thêm bài"}
+              </button>
+              {editingPostRowId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPostRowId(null);
+                    setMobilePostForm(emptyMobilePostForm());
+                  }}
+                  className="h-7 px-2.5 rounded-md text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer touch-manipulation transition-colors"
+                >
+                  Hủy
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-[9px] font-bold text-primary uppercase tracking-wider">
+              {editingEventRowId
+                ? "Chỉnh sửa bàn giao / sự kiện"
+                : "Thêm bàn giao / sự kiện mới"}
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="space-y-0.5 col-span-2">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Sự kiện / Khách hàng *
+                </span>
+                <input
+                  type="text"
+                  placeholder="Nhập tên sự kiện / khách hàng bàn giao"
+                  value={mobileEventForm.event_name}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      event_name: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Ngày thực hiện
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDatePicker({
+                      type: "event-mobile",
+                      rowId: "",
+                      value: mobileEventForm.event_date,
+                    })
+                  }
+                  className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
+                >
+                  <span className="font-sans font-medium">
+                    {formatDateDisplay(mobileEventForm.event_date)}
+                  </span>
+                  <svg
+                    className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Loại mooc
+                </span>
+                <AdminSelect
+                  micro
+                  portal
+                  value={mobileEventForm.trailer_type || ""}
+                  onChange={(v) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      trailer_type: v,
+                    }))
+                  }
+                  options={TRAILER_TYPE_OPTIONS}
+                  placeholder="—"
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Số lượng mooc
+                </span>
+                <input
+                  type="text"
+                  placeholder="Số lượng"
+                  value={mobileEventForm.qty || ""}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      qty: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Địa điểm bàn giao
+                </span>
+                <input
+                  type="text"
+                  placeholder="Hải Phòng..."
+                  value={mobileEventForm.location || ""}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      location: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Chi phí (VNĐ)
+                </span>
+                <input
+                  type="text"
+                  placeholder="Chi phí"
+                  value={mobileEventForm.budget}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      budget: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Khách mời
+                </span>
+                <input
+                  type="text"
+                  placeholder="Số người tham gia"
+                  value={mobileEventForm.attendees}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      attendees: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+              <label className="space-y-0.5 col-span-2">
+                <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Kết quả / Đánh giá
+                </span>
+                <input
+                  type="text"
+                  placeholder="Đạt KPI/tốt..."
+                  value={mobileEventForm.outcome}
+                  onChange={(e) =>
+                    setMobileEventForm((p) => ({
+                      ...p,
+                      outcome: e.target.value,
+                    }))
+                  }
+                  className={mobileFormInput}
+                />
+              </label>
+            </div>
+            <div className="flex gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={handleMobileEventSubmit}
+                className="flex-1 h-7 rounded-md text-[10px] font-bold text-white bg-primary hover:bg-primary-hover cursor-pointer touch-manipulation transition-colors shadow-sm"
+              >
+                {editingEventRowId ? "Cập nhật" : "Thêm sự kiện"}
+              </button>
+              {editingEventRowId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEventRowId(null);
+                    setMobileEventForm(emptyMobileEventForm());
+                  }}
+                  className="h-7 px-2.5 rounded-md text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer touch-manipulation transition-colors"
+                >
+                  Hủy
+                </button>
+              )}
+            </div>
+          </>
         )}
-
-        {/* Mobile Forms */}
-        <div className="sm:hidden rounded-xl border border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white p-2.5 space-y-2 shadow-sm">
-          {activeSubTab === "posts" ? (
-            <>
-              <p className="text-[9px] font-bold text-primary uppercase tracking-wider">
-                {editingPostRowId ? "Chỉnh sửa bài đăng" : "Thêm bài đăng mới"}
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                <label className="space-y-0.5 col-span-2">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Nền tảng
-                  </span>
-                  <div className="flex items-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
-                    <button
-                      type="button"
-                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Tiktok") }))}
-                      title="Tiktok"
-                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
-                        mobilePostForm.platform.includes("Tiktok")
-                          ? "bg-[#fe2c55]/10 text-[#fe2c55]"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {TikTokIcon}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Facebook") }))}
-                      title="Facebook"
-                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
-                        mobilePostForm.platform.includes("Facebook")
-                          ? "bg-[#1877f2]/10 text-[#1877f2]"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {FacebookIcon}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Youtube") }))}
-                      title="Youtube"
-                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
-                        mobilePostForm.platform.includes("Youtube")
-                          ? "bg-[#ff0000]/10 text-[#ff0000]"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {YouTubeIcon}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMobilePostForm((p) => ({ ...p, platform: togglePlatform(p.platform, "Website") }))}
-                      title="Website"
-                      className={`flex-1 flex justify-center items-center p-1 rounded transition-all cursor-pointer ${
-                        mobilePostForm.platform.includes("Website")
-                          ? "bg-slate-700/15 text-slate-800"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {WebsiteIcon}
-                    </button>
-                  </div>
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Tiêu đề *
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Tiêu đề video/bài viết"
-                    value={mobilePostForm.title}
-                    onChange={(e) =>
-                      setMobilePostForm((p) => ({ ...p, title: e.target.value }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Link bài đăng
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="https://..."
-                    value={mobilePostForm.link}
-                    onChange={(e) =>
-                      setMobilePostForm((p) => ({ ...p, link: e.target.value }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Lượt xem
-                  </span>
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={mobilePostForm.views}
-                    onChange={(e) =>
-                      setMobilePostForm((p) => ({ ...p, views: e.target.value }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Lượt thích
-                  </span>
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={mobilePostForm.likes}
-                    onChange={(e) =>
-                      setMobilePostForm((p) => ({ ...p, likes: e.target.value }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Ngày
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveDatePicker({
-                        type: "post-mobile",
-                        rowId: "",
-                        value: mobilePostForm.report_date,
-                      })
-                    }
-                    className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
-                  >
-                    <span className="font-sans font-medium">{formatDateDisplay(mobilePostForm.report_date)}</span>
-                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </label>
-              </div>
-              <div className="flex gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={handleMobilePostSubmit}
-                  className="flex-1 h-7 rounded-md text-[10px] font-bold text-white bg-primary hover:bg-primary-hover cursor-pointer touch-manipulation transition-colors shadow-sm"
-                >
-                  {editingPostRowId ? "Cập nhật" : "Thêm bài"}
-                </button>
-                {editingPostRowId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingPostRowId(null);
-                      setMobilePostForm(emptyMobilePostForm());
-                    }}
-                    className="h-7 px-2.5 rounded-md text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer touch-manipulation transition-colors"
-                  >
-                    Hủy
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[9px] font-bold text-primary uppercase tracking-wider">
-                {editingEventRowId ? "Chỉnh sửa bàn giao / sự kiện" : "Thêm bàn giao / sự kiện mới"}
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                <label className="space-y-0.5 col-span-2">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Sự kiện / Khách hàng *
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Nhập tên sự kiện / khách hàng bàn giao"
-                    value={mobileEventForm.event_name}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        event_name: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Ngày thực hiện
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveDatePicker({
-                        type: "event-mobile",
-                        rowId: "",
-                        value: mobileEventForm.event_date,
-                      })
-                    }
-                    className="flex items-center justify-between px-2 h-7 text-[10px] text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full"
-                  >
-                    <span className="font-sans font-medium">{formatDateDisplay(mobileEventForm.event_date)}</span>
-                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Loại mooc
-                  </span>
-                  <AdminSelect
-                    micro
-                    portal
-                    value={mobileEventForm.trailer_type || ""}
-                    onChange={(v) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        trailer_type: v,
-                      }))
-                    }
-                    options={TRAILER_TYPE_OPTIONS}
-                    placeholder="—"
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Số lượng mooc
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Số lượng"
-                    value={mobileEventForm.qty || ""}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        qty: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Địa điểm bàn giao
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Hải Phòng..."
-                    value={mobileEventForm.location || ""}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        location: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Chi phí (VNĐ)
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Chi phí"
-                    value={mobileEventForm.budget}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        budget: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Khách mời
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Số người tham gia"
-                    value={mobileEventForm.attendees}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        attendees: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-                <label className="space-y-0.5 col-span-2">
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Kết quả / Đánh giá
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Đạt KPI/tốt..."
-                    value={mobileEventForm.outcome}
-                    onChange={(e) =>
-                      setMobileEventForm((p) => ({
-                        ...p,
-                        outcome: e.target.value,
-                      }))
-                    }
-                    className={mobileFormInput}
-                  />
-                </label>
-              </div>
-              <div className="flex gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={handleMobileEventSubmit}
-                  className="flex-1 h-7 rounded-md text-[10px] font-bold text-white bg-primary hover:bg-primary-hover cursor-pointer touch-manipulation transition-colors shadow-sm"
-                >
-                  {editingEventRowId ? "Cập nhật" : "Thêm sự kiện"}
-                </button>
-                {editingEventRowId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingEventRowId(null);
-                      setMobileEventForm(emptyMobileEventForm());
-                    }}
-                    className="h-7 px-2.5 rounded-md text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer touch-manipulation transition-colors"
-                  >
-                    Hủy
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Main Table view */}
-      <div className={`flex-1 min-h-0 overflow-auto ${layoutPad} pt-0`}>
+      <div className={`flex-1 min-h-0 overflow-auto ${layoutPad} pt-3`}>
         {activeSubTab === "posts" ? (
           <>
             {/* Posts Table (Mobile version) */}
@@ -1527,7 +1675,8 @@ export function MarketingReportPanel({
                       <input
                         type="checkbox"
                         checked={
-                          posts.length > 0 && selectedPosts.size === posts.length
+                          posts.length > 0 &&
+                          selectedPosts.size === posts.length
                         }
                         onChange={toggleSelectAllPosts}
                         className="w-3.5 h-3.5 accent-white cursor-pointer"
@@ -1611,7 +1760,7 @@ export function MarketingReportPanel({
             </div>
 
             {/* Posts Table (Desktop version) */}
-            <div className="hidden sm:block rounded-lg border border-slate-100 bg-white min-w-0">
+            <div className="hidden sm:block rounded-lg border border-slate-100 bg-white min-w-0 overflow-hidden">
               <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full min-w-[850px] text-left text-xs">
                   <thead>
@@ -1631,17 +1780,14 @@ export function MarketingReportPanel({
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
                         Nền tảng
                       </th>
-                      <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[10rem]">
+                      <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[12rem]">
                         Tiêu đề / Nội dung bài đăng
                       </th>
-                      <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[8rem]">
+                      <th className="px-2 py-2 font-bold text-center border border-white/15 min-w-[11rem]">
                         Đường dẫn (Link)
                       </th>
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-20">
                         Lượt xem
-                      </th>
-                      <th className="px-2 py-2 font-bold text-center border border-white/15 w-20">
-                        Lượt thích
                       </th>
                       <th className="px-2 py-2 font-bold text-center border border-white/15 w-24">
                         Ngày
@@ -1652,7 +1798,7 @@ export function MarketingReportPanel({
                     {displayedPosts.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={6}
                           className="px-3 py-10 text-center text-slate-400 italic border border-slate-200/80"
                         >
                           Chưa có dòng bài đăng — bấm &quot;Thêm dòng&quot; để
@@ -1684,7 +1830,14 @@ export function MarketingReportPanel({
                             <div className="flex items-center justify-center gap-1.5 h-8 bg-slate-50/50 rounded border border-slate-200/40 px-1">
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Tiktok"), true)}
+                                onClick={() =>
+                                  updatePostRow(
+                                    row.rowId,
+                                    "platform",
+                                    togglePlatform(row.platform, "Tiktok"),
+                                    true,
+                                  )
+                                }
                                 title="Tiktok"
                                 className={`p-1 rounded transition-all cursor-pointer ${
                                   row.platform.includes("Tiktok")
@@ -1696,7 +1849,14 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Facebook"), true)}
+                                onClick={() =>
+                                  updatePostRow(
+                                    row.rowId,
+                                    "platform",
+                                    togglePlatform(row.platform, "Facebook"),
+                                    true,
+                                  )
+                                }
                                 title="Facebook"
                                 className={`p-1 rounded transition-all cursor-pointer ${
                                   row.platform.includes("Facebook")
@@ -1708,7 +1868,14 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Youtube"), true)}
+                                onClick={() =>
+                                  updatePostRow(
+                                    row.rowId,
+                                    "platform",
+                                    togglePlatform(row.platform, "Youtube"),
+                                    true,
+                                  )
+                                }
                                 title="Youtube"
                                 className={`p-1 rounded transition-all cursor-pointer ${
                                   row.platform.includes("Youtube")
@@ -1720,7 +1887,14 @@ export function MarketingReportPanel({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updatePostRow(row.rowId, "platform", togglePlatform(row.platform, "Website"), true)}
+                                onClick={() =>
+                                  updatePostRow(
+                                    row.rowId,
+                                    "platform",
+                                    togglePlatform(row.platform, "Website"),
+                                    true,
+                                  )
+                                }
                                 title="Website"
                                 className={`p-1 rounded transition-all cursor-pointer ${
                                   row.platform.includes("Website")
@@ -1735,14 +1909,19 @@ export function MarketingReportPanel({
                           <td className="p-1 border border-slate-200/80">
                             <input
                               ref={(el) => {
-                                if (el) postTitleRefs.current.set(row.rowId, el);
+                                if (el)
+                                  postTitleRefs.current.set(row.rowId, el);
                                 else postTitleRefs.current.delete(row.rowId);
                               }}
                               type="text"
                               placeholder="Tiêu đề video/bài đăng *"
                               value={row.title}
                               onChange={(e) =>
-                                updatePostRow(row.rowId, "title", e.target.value)
+                                updatePostRow(
+                                  row.rowId,
+                                  "title",
+                                  e.target.value,
+                                )
                               }
                               onBlur={handleMarketingBlur}
                               className={`${cellInput} font-semibold`}
@@ -1766,24 +1945,17 @@ export function MarketingReportPanel({
                               placeholder=""
                               value={row.views}
                               onChange={(e) =>
-                                updatePostRow(row.rowId, "views", e.target.value)
+                                updatePostRow(
+                                  row.rowId,
+                                  "views",
+                                  e.target.value,
+                                )
                               }
                               onBlur={handleMarketingBlur}
                               className={cellInput}
                             />
                           </td>
-                          <td className="p-1 border border-slate-200/80">
-                            <input
-                              type="text"
-                              placeholder=""
-                              value={row.likes}
-                              onChange={(e) =>
-                                updatePostRow(row.rowId, "likes", e.target.value)
-                              }
-                              onBlur={handleMarketingBlur}
-                              className={cellInput}
-                            />
-                          </td>
+
                           <td className="p-1 border border-slate-200/80 text-center">
                             <button
                               type="button"
@@ -1796,9 +1968,21 @@ export function MarketingReportPanel({
                               }
                               className="flex items-center justify-between px-2 py-1.5 text-xs text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50/80 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full min-h-[2rem]"
                             >
-                              <span className="font-sans font-medium text-slate-700">{formatDateDisplay(row.report_date)}</span>
-                              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              <span className="font-sans font-medium text-slate-700">
+                                {formatDateDisplay(row.report_date)}
+                              </span>
+                              <svg
+                                className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
                               </svg>
                             </button>
                           </td>
@@ -1906,7 +2090,7 @@ export function MarketingReportPanel({
             </div>
 
             {/* Events Table (Desktop version) */}
-            <div className="hidden sm:block rounded-lg border border-slate-100 bg-white min-w-0">
+            <div className="hidden sm:block rounded-lg border border-slate-100 bg-white min-w-0 overflow-hidden">
               <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full min-w-[850px] text-left text-xs">
                   <thead>
@@ -1917,7 +2101,7 @@ export function MarketingReportPanel({
                           checked={
                             events.length > 0 &&
                             selectedEvents.size === events.length
-                        }
+                          }
                           onChange={toggleSelectAllEvents}
                           className="w-3.5 h-3.5 accent-white cursor-pointer"
                           aria-label="Chọn tất cả"
@@ -1984,7 +2168,8 @@ export function MarketingReportPanel({
                           <td className="p-1 border border-slate-200/80">
                             <input
                               ref={(el) => {
-                                if (el) eventNameRefs.current.set(row.rowId, el);
+                                if (el)
+                                  eventNameRefs.current.set(row.rowId, el);
                                 else eventNameRefs.current.delete(row.rowId);
                               }}
                               type="text"
@@ -2013,9 +2198,21 @@ export function MarketingReportPanel({
                               }
                               className="flex items-center justify-between px-2 py-1.5 text-xs text-slate-800 bg-white border border-slate-200/80 rounded hover:bg-slate-50/80 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/30 w-full min-h-[2rem]"
                             >
-                              <span className="font-sans font-medium text-slate-700">{formatDateDisplay(row.event_date)}</span>
-                              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              <span className="font-sans font-medium text-slate-700">
+                                {formatDateDisplay(row.event_date)}
+                              </span>
+                              <svg
+                                className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
                               </svg>
                             </button>
                           </td>
@@ -2025,7 +2222,12 @@ export function MarketingReportPanel({
                               portal
                               value={row.trailer_type || ""}
                               onChange={(v) =>
-                                updateEventRow(row.rowId, "trailer_type", v, true)
+                                updateEventRow(
+                                  row.rowId,
+                                  "trailer_type",
+                                  v,
+                                  true,
+                                )
                               }
                               options={TRAILER_TYPE_OPTIONS}
                               placeholder="—"
@@ -2049,7 +2251,11 @@ export function MarketingReportPanel({
                               placeholder="Địa điểm bàn giao"
                               value={row.location || ""}
                               onChange={(e) =>
-                                updateEventRow(row.rowId, "location", e.target.value)
+                                updateEventRow(
+                                  row.rowId,
+                                  "location",
+                                  e.target.value,
+                                )
                               }
                               onBlur={handleMarketingBlur}
                               className={cellInput}
@@ -2061,7 +2267,11 @@ export function MarketingReportPanel({
                               placeholder="Chi phí"
                               value={row.budget}
                               onChange={(e) =>
-                                updateEventRow(row.rowId, "budget", e.target.value)
+                                updateEventRow(
+                                  row.rowId,
+                                  "budget",
+                                  e.target.value,
+                                )
                               }
                               onBlur={handleMarketingBlur}
                               className={cellInput}
@@ -2115,8 +2325,17 @@ export function MarketingReportPanel({
         onClose={() => setShowExcelPreview(false)}
         onConfirm={handleConfirmExportExcel}
         period={period}
-        staffName={selectedStaffId === "all" ? "Tất cả nhân sự" : (marketingStaff.find(s => s.id === selectedStaffId)?.full_name || profile.full_name)}
-        branchName={profile.department?.branch ? `${profile.department.name} - ${profile.department.branch.name}` : profile.department?.name}
+        staffName={
+          selectedStaffId === "all"
+            ? "Tất cả nhân sự"
+            : marketingStaff.find((s) => s.id === selectedStaffId)?.full_name ||
+              profile.full_name
+        }
+        branchName={
+          profile.department?.branch
+            ? `${profile.department.name} - ${profile.department.branch.name}`
+            : profile.department?.name
+        }
         posts={displayedPosts.filter((p) => p.title.trim())}
         events={displayedEvents.filter((e) => e.event_name.trim())}
       />
@@ -2128,9 +2347,19 @@ export function MarketingReportPanel({
           onClose={() => setActiveDatePicker(null)}
           onSelect={(newDate) => {
             if (activeDatePicker.type === "post") {
-              updatePostRow(activeDatePicker.rowId, "report_date", newDate, true);
+              updatePostRow(
+                activeDatePicker.rowId,
+                "report_date",
+                newDate,
+                true,
+              );
             } else if (activeDatePicker.type === "event") {
-              updateEventRow(activeDatePicker.rowId, "event_date", newDate, true);
+              updateEventRow(
+                activeDatePicker.rowId,
+                "event_date",
+                newDate,
+                true,
+              );
             } else if (activeDatePicker.type === "post-mobile") {
               setMobilePostForm((p) => ({ ...p, report_date: newDate }));
             } else if (activeDatePicker.type === "event-mobile") {

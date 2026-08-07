@@ -633,7 +633,7 @@ export function AdminAttendancePanel({
             {/* Daily Stat Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-transparent border border-primary flex items-center justify-center text-primary shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -644,7 +644,7 @@ export function AdminAttendancePanel({
                 </div>
               </div>
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-transparent border border-emerald-600 flex items-center justify-center text-emerald-600 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -655,7 +655,7 @@ export function AdminAttendancePanel({
                 </div>
               </div>
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-transparent border border-amber-600 flex items-center justify-center text-amber-600 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -666,7 +666,7 @@ export function AdminAttendancePanel({
                 </div>
               </div>
               <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center text-rose-500 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-transparent border border-rose-500 flex items-center justify-center text-rose-500 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -740,15 +740,15 @@ export function AdminAttendancePanel({
                           </td>
                           <td className="px-4 py-3 text-center">
                             {row.hasReport && !row.isLate ? (
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 min-w-[70px] text-center shadow-xs whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-transparent text-emerald-600 border border-emerald-600 min-w-[70px] text-center whitespace-nowrap">
                                 Đi làm
                               </span>
                             ) : row.hasReport && row.isLate ? (
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 min-w-[70px] text-center shadow-xs whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-transparent text-amber-600 border border-amber-600 min-w-[70px] text-center whitespace-nowrap">
                                 Đi muộn
                               </span>
                             ) : (
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 min-w-[70px] text-center shadow-xs whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-[4px] text-[10px] font-bold bg-transparent text-rose-600 border border-rose-600 min-w-[70px] text-center whitespace-nowrap">
                                 Vắng mặt
                               </span>
                             )}
@@ -879,7 +879,7 @@ export function AdminAttendancePanel({
                     Bảng công tháng {formatMonthLabel(selectedMonth)} (Tổng số: {filteredMonthlyStaff.length} người)
                   </span>
                   <span className="text-[10px] text-slate-400 italic">
-                    Ký hiệu: <strong className="text-emerald-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">x</strong> = Đi làm · <strong className="text-amber-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">M</strong> = Đi muộn · <strong className="text-rose-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">P</strong> = Nghỉ phép · <strong className="text-rose-600 font-black bg-slate-100/80 px-1.5 py-0.5 rounded">V</strong> = Vắng không phép · <strong className="text-slate-400 font-bold">•</strong> = Ngày tương lai (Bấm ô để chỉnh sửa)
+                    Ký hiệu: <strong className="text-emerald-600 font-black bg-transparent border border-emerald-600 px-1.5 py-0.5 rounded">x</strong> = Đi làm · <strong className="text-amber-600 font-black bg-transparent border border-amber-600 px-1.5 py-0.5 rounded">M</strong> = Đi muộn · <strong className="text-rose-600 font-black bg-transparent border border-rose-600 px-1.5 py-0.5 rounded">P</strong> = Nghỉ phép · <strong className="text-rose-600 font-black bg-transparent border border-rose-600 px-1.5 py-0.5 rounded">V</strong> = Vắng không phép · <strong className="text-slate-400 font-bold">•</strong> = Ngày tương lai (Bấm ô để chỉnh sửa)
                   </span>
                 </div>
 
