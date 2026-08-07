@@ -253,10 +253,7 @@ export function MarketingReportPanel({
       return true;
     });
   }, [events, filterMonth]);
-      }
-      return true;
-    });
-  }, [events, filterMonth, filterDay]);
+
 
   const [marketingStaff, setMarketingStaff] = useState<{ id: string; full_name: string }[]>([]);
 
@@ -1033,7 +1030,6 @@ export function MarketingReportPanel({
                 value={filterMonth}
                 onChange={(v) => {
                   setFilterMonth(v);
-                  setFilterDay("all");
                 }}
                 options={monthOptions}
                 className="w-40 shrink-0"
@@ -1156,7 +1152,7 @@ export function MarketingReportPanel({
 
           <button
             type="button"
-            onClick={activeSubTab === "posts" ? handleAddPostRow : handleAddEventRow}
+            onClick={() => activeSubTab === "posts" ? handleAddPostRow() : handleAddEventRow()}
             className={`${toolbarBtn} hidden sm:inline-flex text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20`}
           >
             + Thêm dòng
