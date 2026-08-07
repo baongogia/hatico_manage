@@ -199,7 +199,6 @@ export function MarketingReportPanel({
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     return `${yyyy}-${mm}`;
   });
-  const [filterDay, setFilterDay] = useState<string>("all");
   const [filterPlatform, setFilterPlatform] = useState<string>("all");
 
   const monthOptions = useMemo(() => {
@@ -239,25 +238,21 @@ export function MarketingReportPanel({
       if (filterMonth !== "all") {
         if (!post.report_date.startsWith(filterMonth)) return false;
       }
-      if (filterDay !== "all") {
-        const dayStr = post.report_date.slice(8, 10);
-        if (dayStr !== filterDay) return false;
-      }
       if (filterPlatform !== "all") {
         if (!post.platform.includes(filterPlatform)) return false;
       }
       return true;
     });
-  }, [posts, filterMonth, filterDay, filterPlatform]);
+  }, [posts, filterMonth, filterPlatform]);
 
   const displayedEvents = useMemo(() => {
     return events.filter((event) => {
       if (filterMonth !== "all") {
         if (!event.event_date.startsWith(filterMonth)) return false;
       }
-      if (filterDay !== "all") {
-        const dayStr = event.event_date.slice(8, 10);
-        if (dayStr !== filterDay) return false;
+      return true;
+    });
+  }, [events, filterMonth]);
       }
       return true;
     });
@@ -496,12 +491,13 @@ export function MarketingReportPanel({
     });
   };
 
-  const handleAddPostRow = () => {
-    const row = newEmptyPostRow(todayStr);
+  const handleAddPostRow = (dateStr?: string) => {
+    const rowDate = dateStr || todayStr;
+    const row = newEmptyPostRow(rowDate);
     focusPostRowIdRef.current = row.rowId;
-    dirtyDatesRef.current.add(todayStr);
+    dirtyDatesRef.current.add(rowDate);
     setPosts((prev) => [row, ...prev]);
-    setLoadedPostDates((prev) => new Set([...prev, todayStr]));
+    setLoadedPostDates((prev) => new Set([...prev, rowDate]));
   };
 
   const toggleSelectPost = (rowId: string) => {
@@ -550,12 +546,13 @@ export function MarketingReportPanel({
     });
   };
 
-  const handleAddEventRow = () => {
-    const row = newEmptyEventRow(todayStr);
+  const handleAddEventRow = (dateStr?: string) => {
+    const rowDate = dateStr || todayStr;
+    const row = newEmptyEventRow(rowDate);
     focusEventRowIdRef.current = row.rowId;
-    dirtyDatesRef.current.add(todayStr);
+    dirtyDatesRef.current.add(rowDate);
     setEvents((prev) => [row, ...prev]);
-    setLoadedEventDates((prev) => new Set([...prev, todayStr]));
+    setLoadedEventDates((prev) => new Set([...prev, rowDate]));
   };
 
   const toggleSelectEvent = (rowId: string) => {
@@ -1119,45 +1116,29 @@ export function MarketingReportPanel({
             <div className="border-t border-slate-200/50 pt-2 flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                  Chọn ngày báo cáo:
+                  Thêm dòng báo cáo nhanh cho ngày:
                 </span>
-                {filterDay !== "all" && (
-                  <button
-                    type="button"
-                    onClick={() => setFilterDay("all")}
-                    className="text-[8px] font-bold text-primary hover:underline cursor-pointer"
-                  >
-                    Tất cả ngày trong tháng
-                  </button>
-                )}
               </div>
               <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar scroll-smooth">
-                <button
-                  type="button"
-                  onClick={() => setFilterDay("all")}
-                  className={`shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
-                    filterDay === "all"
-                      ? "bg-primary border-primary text-white font-bold shadow-xs"
-                      : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-                  }`}
-                >
-                  <span className="text-[7px] uppercase font-bold opacity-75">Tất</span>
-                  <span className="text-[9px] font-extrabold">Cả</span>
-                </button>
                 {daysInMonth.map((day) => (
                   <button
                     key={day.dayStr}
                     type="button"
-                    onClick={() => setFilterDay(day.dayStr)}
+                    onClick={() => {
+                      const dateStr = `${filterMonth}-${day.dayStr}`;
+                      if (activeSubTab === "posts") {
+                        handleAddPostRow(dateStr);
+                      } else {
+                        handleAddEventRow(dateStr);
+                      }
+                    }}
                     className={`shrink-0 flex flex-col items-center justify-center w-8 h-8 rounded-md border text-center transition-all cursor-pointer ${
-                      filterDay === day.dayStr
-                        ? "bg-primary border-primary text-white font-bold shadow-xs"
-                        : day.isWeekend
-                          ? "bg-amber-50/70 border-amber-200/80 text-amber-800 hover:bg-amber-100/80"
-                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      day.isWeekend
+                        ? "bg-amber-50/70 border-amber-200/80 text-amber-800 hover:bg-amber-100/80 hover:scale-105 shadow-sm"
+                        : "bg-white border-slate-200 text-slate-700 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 shadow-sm"
                     }`}
                   >
-                    <span className={`text-[7px] uppercase font-bold ${filterDay === day.dayStr ? "text-white/90" : "text-slate-400"}`}>
+                    <span className={`text-[7px] uppercase font-bold text-slate-400`}>
                       {day.dayName}
                     </span>
                     <span className="text-[9px] font-extrabold">{day.label}</span>
