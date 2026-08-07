@@ -1150,13 +1150,7 @@ export function MarketingReportPanel({
       <div className={`shrink-0 ${layoutPad} flex flex-col ${layoutGap} pt-1`}>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2">
 
-          <button
-            type="button"
-            onClick={() => activeSubTab === "posts" ? handleAddPostRow() : handleAddEventRow()}
-            className={`${toolbarBtn} hidden sm:inline-flex text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20`}
-          >
-            + Thêm dòng
-          </button>
+
 
           {((activeSubTab === "posts" && selectedPosts.size > 0) ||
             (activeSubTab === "events" && selectedEvents.size > 0)) && (
