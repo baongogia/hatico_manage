@@ -186,14 +186,19 @@ export function MarketingReportPanel({
   const todayStr = new Date().toISOString().split("T")[0];
   const isAdmin = profile.role === "admin";
 
-  const [period, setPeriod] = useState<CallReportPeriod>("month");
+  const [period, setPeriod] = useState<CallReportPeriod>("all");
   const [selectedStaffId, setSelectedStaffId] = useState<string>(profile.id);
   const [activeSubTab, setActiveSubTab] = useState<"posts" | "events">("posts");
 
   const [posts, setPosts] = useState<EditablePostRow[]>([]);
   const [events, setEvents] = useState<EditableEventRow[]>([]);
 
-  const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterMonth, setFilterMonth] = useState<string>(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    return `${yyyy}-${mm}`;
+  });
   const [filterDay, setFilterDay] = useState<string>("all");
   const [filterPlatform, setFilterPlatform] = useState<string>("all");
 
@@ -417,7 +422,7 @@ export function MarketingReportPanel({
     let views = 0;
     let likes = 0;
 
-    posts.forEach((p) => {
+    displayedPosts.forEach((p) => {
       if (!p.title.trim()) return;
       if (p.platform.includes("Tiktok")) tiktok++;
       if (p.platform.includes("Facebook")) facebook++;
@@ -431,7 +436,7 @@ export function MarketingReportPanel({
     });
 
     return {
-      total: posts.filter((p) => p.title.trim()).length,
+      total: displayedPosts.filter((p) => p.title.trim()).length,
       tiktok,
       facebook,
       youtube,
@@ -439,14 +444,14 @@ export function MarketingReportPanel({
       views,
       likes,
     };
-  }, [posts]);
+  }, [displayedPosts]);
 
   const eventMetrics = useMemo(() => {
     let total = 0;
     let budget = 0;
     let attendees = 0;
 
-    events.forEach((e) => {
+    displayedEvents.forEach((e) => {
       if (!e.event_name.trim()) return;
       total++;
       const b = parseInt(e.budget.replace(/[^0-9]/g, "")) || 0;
@@ -460,7 +465,7 @@ export function MarketingReportPanel({
       budget,
       attendees,
     };
-  }, [events]);
+  }, [displayedEvents]);
 
   // Editing logic for Posts
   const updatePostRow = (
@@ -758,10 +763,9 @@ export function MarketingReportPanel({
   const handleConfirmExportExcel = async () => {
     setShowExcelPreview(false);
     try {
-      const label =
-        PERIOD_TABS.find((t) => t.value === period)?.label || period;
-      const exportPosts = posts.filter((p) => p.title.trim());
-      const exportEvents = events.filter((e) => e.event_name.trim());
+      const label = filterMonth === "all" ? "Tat_ca_cac_thang" : `Thang_${filterMonth.split("-")[1]}_${filterMonth.split("-")[0]}`;
+      const exportPosts = displayedPosts.filter((p) => p.title.trim());
+      const exportEvents = displayedEvents.filter((e) => e.event_name.trim());
       
       const staffLabel = selectedStaffId === "all"
         ? "Tat_ca_nhan_su"
@@ -829,10 +833,31 @@ export function MarketingReportPanel({
 
   return (
     <div
-      className={`no-print flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/92 shadow-[0_8px_32px_rgba(15,45,89,0.08)] transition-opacity duration-200 ${
+      className={`no-print flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/92 shadow-[0_8px_32px_rgba(15,45,89,0.08)] transition-opacity duration-200 relative ${
         isPending ? "opacity-70 pointer-events-none" : "opacity-100"
       }`}
     >
+      {/* Saving Overlay */}
+      {isSaving && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all duration-300">
+          <div className="flex flex-col items-center justify-center gap-3 bg-white/90 shadow-2xl border border-primary/10 rounded-2xl p-6 transform scale-100 animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative flex items-center justify-center w-12 h-12">
+              <svg className="w-12 h-12 animate-spin text-primary/20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              </svg>
+              <svg className="w-12 h-12 animate-spin text-primary absolute left-0 top-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.47715 2 2 6.47715 2 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-widest animate-pulse">
+              Đang lưu...
+            </p>
+          </div>
+        </div>
+      )}
       {/* Title Header */}
       <div className="relative shrink-0 overflow-hidden border-b border-primary/30">
         <Image
@@ -1169,37 +1194,6 @@ export function MarketingReportPanel({
               )
             </button>
           )}
-
-          <button
-            type="button"
-            disabled={isSaving || isPending}
-            onClick={handleSave}
-            className={`${toolbarBtn} text-white bg-primary hover:bg-primary-hover disabled:opacity-60 shadow-sm`}
-          >
-            {isSaving ? "Đang lưu..." : "Lưu báo cáo"}
-          </button>
-
-          {/* Period Tabs */}
-          <div
-            className="flex items-center gap-1 sm:gap-1.5 sm:ml-2 sm:pl-2 sm:border-l sm:border-slate-200 shrink-0"
-            role="group"
-            aria-label="Lọc khoảng thời gian"
-          >
-            {PERIOD_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => handlePeriodChange(tab.value)}
-                className={`${toolbarBtn} ${
-                  period === tab.value
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
 
           <span className="text-[9px] sm:text-[10px] text-slate-500 sm:ml-auto shrink-0">
             {activeSubTab === "posts" ? posts.length : events.length} dòng
@@ -2152,8 +2146,8 @@ export function MarketingReportPanel({
         period={period}
         staffName={selectedStaffId === "all" ? "Tất cả nhân sự" : (marketingStaff.find(s => s.id === selectedStaffId)?.full_name || profile.full_name)}
         branchName={profile.department?.branch ? `${profile.department.name} - ${profile.department.branch.name}` : profile.department?.name}
-        posts={posts.filter((p) => p.title.trim())}
-        events={events.filter((e) => e.event_name.trim())}
+        posts={displayedPosts.filter((p) => p.title.trim())}
+        events={displayedEvents.filter((e) => e.event_name.trim())}
       />
 
       {activeDatePicker && (
